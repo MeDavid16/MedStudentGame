@@ -223,6 +223,9 @@ p { line-height: 1.5; margin: 8px 0; }
 @media (max-height: 640px) { #title .lede { display: none; } }
 
 #title .title-card::before { content: ''; position: absolute; inset: -40px -80px -30px; z-index: -1; background: radial-gradient(ellipse at 50% 45%, rgba(5,10,16,.72) 0%, rgba(5,10,16,.45) 45%, rgba(5,10,16,0) 72%); pointer-events: none; }
+
+.weapon-reveal { margin-top: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid #3a5170; background: linear-gradient(160deg, #18304a, #121a24); }
+.wr-name { font-size: 20px; font-weight: 900; margin: 4px 0; color: #ffe08a; }
 </style>
 </head>
 <body>
@@ -394,7 +397,7 @@ const TREES = [
       { id: 'bioavail',row: 0, name: 'Bioavailability',  max: 3, desc: r => `+${8*r}% basic attack damage` },
       { id: 'spray',   row: 1, name: 'Broad-Spectrum Spray', max: 1, active: true, desc: () => 'ACTIVE: Fire a cone of 9 pills (90% damage each) that poison targets for 3s. 5s cooldown.' },
       { id: 'halflife',row: 1, name: 'Half-Life',        max: 3, desc: r => `Poison deals +${20*r}% damage and lasts longer` },
-      { id: 'loading', row: 2, name: 'Loading Dose',     max: 2, desc: r => `Basic attacks fire ${r} extra projectile${r>1?'s':''}` },
+      { id: 'loading', row: 2, name: 'Loading Dose',     max: 2, desc: r => `Projectile weapons fire ${r} extra shot${r>1?'s':''}; beam, shock, spray and melee weapons deal +${20*r}% damage` },
       { id: 'synergy', row: 2, name: 'Drug Synergy',     max: 2, desc: r => `+${10*r}% damage to poisoned enemies` },
       { id: 'codecart',row: 3, name: 'Code Cart',        max: 1, active: true, desc: () => 'ULTIMATE: Drop a medication cloud at the cursor for 5s that damages and slows enemies. 20s cooldown.' },
     ] },
@@ -588,6 +591,176 @@ const CLASSROOM = { name: 'Medical School', place: 'MS1 Lecture Hall', setting: 
 const FIRST_NAMES_F = ['Avery', 'Maya', 'Sofia', 'Priya', 'Chloe', 'Leah', 'Nora', 'Grace'];
 const FIRST_NAMES_M = ['Ethan', 'Noah', 'Daniel', 'Lucas', 'Omar', 'Kenji', 'Mateo', 'Ryan'];
 
+// ---------- PRIMARY WEAPONS (one random at the start; a second random one at max level) ----------
+// rate = attacks/sec, dmg = multiplier on basic damage. kind: proj | beam | melee | chain | cone
+const WEAPONS = {
+  penlight:   { name: 'Diagnostic Penlight',  icon: '🔦', kind: 'beam',  rate: 5.0, dmg: 0.62, range: 520, desc: 'Rapid beams of focused light that hit instantly.' },
+  syringe:    { name: 'Syringe Launcher',     icon: '💉', kind: 'proj',  rate: 2.6, dmg: 1.0, spd: 720, proj: 'syringe', life: 0.95, poison: true, color: '#7fe3ff', desc: 'Fires loaded syringes that leave a lingering toxin.' },
+  hammer:     { name: 'Reflex Hammer',        icon: '🔨', kind: 'melee', rate: 2.0, dmg: 1.9, range: 118, arc: 1.9, desc: 'Heavy close-range swings that knock enemies back.' },
+  scalpel:    { name: 'Scalpel Throwers',     icon: '🔪', kind: 'proj',  rate: 3.0, dmg: 0.95, spd: 840, proj: 'scalpel', life: 0.8, pierce: 1, color: '#e8eef5', desc: 'Spinning scalpels that slice through two targets.' },
+  defib:      { name: 'Defibrillator Paddles', icon: '⚡', kind: 'chain', rate: 1.4, dmg: 2.0, range: 430, chains: 2, desc: 'Electric shocks that arc between up to three enemies.' },
+  stapler:    { name: 'Surgical Stapler',     icon: '📎', kind: 'proj',  rate: 7.0, dmg: 0.45, spd: 940, proj: 'staple', life: 0.7, spread: 0.09, color: '#d5dde6', desc: 'A rapid stream of steel surgical staples.' },
+  cryo:       { name: 'Cryo Spray',           icon: '❄️', kind: 'cone',  rate: 6.5, dmg: 0.5, range: 235, arc: 0.75, desc: 'A liquid-nitrogen cone that slows everything it touches.' },
+  pills:      { name: 'Pill Bottle Blaster',  icon: '💊', kind: 'proj',  rate: 1.3, dmg: 0.55, spd: 660, proj: 'pill', life: 0.55, count: 6, spread: 0.5, color: '#ff7ad9', desc: 'A shotgun burst of six tumbling pills.' },
+  ultrasound: { name: 'Ultrasound Wand',      icon: '〰️', kind: 'proj',  rate: 1.6, dmg: 1.6, spd: 540, proj: 'wave', life: 0.62, pierce: 99, r: 18, color: '#9fd0ff', desc: 'Sound-wave arcs that pass through every enemy in a line.' },
+  castsaw:    { name: 'Cast Saw',             icon: '⚙️', kind: 'proj',  rate: 1.1, dmg: 1.3, spd: 640, proj: 'saw', life: 1.25, pierce: 99, r: 14, boomerang: true, color: '#ffd08a', desc: 'An oscillating saw blade that flies out and returns.' },
+};
+const WEAPON_KEYS = Object.keys(WEAPONS);
+const HAIR_STYLES = {
+  m: [['short', 'Short'], ['buzz', 'Buzz'], ['receding', 'Receding'], ['sidepart', 'Side Part'], ['curly', 'Curly Top'], ['spiky', 'Spiky']],
+  f: [['ponytail', 'Ponytail'], ['long', 'Long'], ['bun', 'Bun'], ['bob', 'Bob'], ['braid', 'Braid'], ['afro', 'Curly']],
+};
+
+// ===================== RESIDENCY — EXPANDED ATTENDING QUESTION BANK =====================
+// High-yield board-style questions. Format: { q, a: [correct, wrong, wrong, wrong], why }.
+'use strict';
+const MORE_QUESTIONS = {
+  peds: [
+    { q: 'Bilious vomiting in a newborn must be assumed to be ___ until proven otherwise.', a: ['Malrotation with midgut volvulus', 'Hypertrophic pyloric stenosis', 'Gastroesophageal reflux', 'Cow\'s milk protein allergy'], why: 'Bilious emesis in a neonate is a surgical emergency; volvulus can infarct the bowel within hours.' },
+    { q: 'Classic electrolyte pattern in hypertrophic pyloric stenosis:', a: ['Hypochloremic, hypokalemic metabolic alkalosis', 'Hyperchloremic metabolic acidosis', 'Hyperkalemic metabolic acidosis', 'Respiratory alkalosis with hypernatremia'], why: 'Persistent vomiting of gastric acid causes loss of HCl and secondary renal K⁺ wasting.' },
+    { q: 'Treatment of choice for uncomplicated intussusception in a stable child:', a: ['Air or contrast enema reduction', 'Emergency laparotomy', 'IV antibiotics and observation', 'Nasogastric decompression only'], why: 'Enema reduction is diagnostic and therapeutic; surgery is for failure, perforation or instability.' },
+    { q: 'A "slapped-cheek" facial rash followed by a lacy body rash is caused by:', a: ['Parvovirus B19', 'Human herpesvirus 6', 'Measles virus', 'Group A Streptococcus'], why: 'Erythema infectiosum (fifth disease); parvovirus can cause aplastic crisis in sickle cell disease.' },
+    { q: 'Several days of high fever, then a rash appears as the fever breaks:', a: ['Roseola (HHV-6)', 'Measles', 'Scarlet fever', 'Kawasaki disease'], why: 'Roseola infantum: the rash classically appears after defervescence.' },
+    { q: 'Mainstay medication for croup of any severity:', a: ['A single dose of dexamethasone', 'Amoxicillin', 'Inhaled albuterol', 'Oral antihistamine'], why: 'Corticosteroids reduce airway edema; nebulized epinephrine is added for moderate to severe cases.' },
+    { q: 'Jaundice appearing in the first 24 hours of life is:', a: ['Pathologic until proven otherwise', 'Normal physiologic jaundice', 'Breast-milk jaundice', 'Expected in all breastfed infants'], why: 'Early jaundice suggests hemolysis (e.g., ABO/Rh incompatibility) and needs workup.' },
+    { q: 'A child with tetralogy of Fallot squats during "tet spells" because squatting:', a: ['Increases systemic vascular resistance, reducing right-to-left shunting', 'Lowers pulmonary artery pressure directly', 'Decreases venous return to the heart', 'Slows the heart rate'], why: 'Higher SVR pushes more blood through the pulmonary circuit.' },
+    { q: 'Vitamin K is given to every newborn to prevent:', a: ['Vitamin K deficiency bleeding of the newborn', 'Neonatal jaundice', 'Rickets', 'Neural tube defects'], why: 'Newborns have low vitamin K stores and sterile guts; breast milk is low in vitamin K.' },
+  ],
+  psych: [
+    { q: 'First-line medication class for PTSD:', a: ['SSRIs (e.g., sertraline, paroxetine)', 'Benzodiazepines', 'Typical antipsychotics', 'Stimulants'], why: 'SSRIs (or SNRIs) plus trauma-focused psychotherapy; benzodiazepines are discouraged.' },
+    { q: 'First-trimester lithium exposure is classically linked to:', a: ['Ebstein anomaly', 'Neural tube defects', 'Cleft palate', 'Phocomelia'], why: 'Ebstein anomaly (apical displacement of the tricuspid valve); the absolute risk is small.' },
+    { q: 'Minimum symptom duration for a major depressive episode:', a: ['2 weeks', '2 months', '6 months', '1 week'], why: 'Five or more symptoms, including depressed mood or anhedonia, for at least 2 weeks.' },
+    { q: 'Schizophrenia requires continuous signs of disturbance for at least:', a: ['6 months', '1 month', '2 weeks', '2 years'], why: '<1 month = brief psychotic disorder; 1–6 months = schizophreniform disorder.' },
+    { q: 'FDA-approved drug class for tardive dyskinesia:', a: ['VMAT2 inhibitors (valbenazine, deutetrabenazine)', 'Anticholinergics', 'Dopamine agonists', 'Beta-blockers'], why: 'Anticholinergics help acute dystonia and parkinsonism but can worsen tardive dyskinesia.' },
+    { q: 'Acute dystonia shortly after starting haloperidol — treat with:', a: ['Benztropine or diphenhydramine', 'Propranolol', 'Dantrolene', 'Lorazepam infusion only'], why: 'Anticholinergics rapidly reverse acute dystonic reactions.' },
+    { q: 'Characteristic lab finding in neuroleptic malignant syndrome:', a: ['Markedly elevated creatine kinase', 'Severe hypoglycemia', 'Elevated serum lithium', 'Low serum sodium'], why: 'Rigidity causes rhabdomyolysis; also fever, autonomic instability and altered mental status.' },
+    { q: 'In a malnourished patient with alcohol use disorder, give ___ before glucose.', a: ['Thiamine', 'Folate', 'Vitamin B12', 'Magnesium'], why: 'Glucose without thiamine can precipitate or worsen Wernicke encephalopathy.' },
+    { q: 'Bupropion is contraindicated in patients with:', a: ['A seizure disorder or bulimia', 'Hypertension', 'Hypothyroidism', 'Asthma'], why: 'Bupropion lowers the seizure threshold, especially with electrolyte disturbances.' },
+  ],
+  fm: [
+    { q: 'USPSTF cervical cancer screening for average-risk patients aged 21–29:', a: ['Cytology every 3 years', 'HPV testing every year', 'Cytology every year', 'No screening until 30'], why: 'From 30–65, cytology q3y, primary HPV q5y or co-testing q5y are options.' },
+    { q: 'One-time abdominal aortic aneurysm ultrasound screening is recommended for:', a: ['Men aged 65–75 who have ever smoked', 'All adults over 50', 'Women aged 65–75 who never smoked', 'Anyone with hypertension'], why: 'USPSTF grade B for men 65–75 with any smoking history.' },
+    { q: 'USPSTF annual lung cancer screening with low-dose CT:', a: ['Ages 50–80, ≥20 pack-years, currently smoking or quit within 15 years', 'All smokers over 40', 'Ages 55–74, ≥30 pack-years only', 'Anyone with a chronic cough'], why: 'The 2021 update lowered the starting age to 50 and the threshold to 20 pack-years.' },
+    { q: 'An adult with LDL cholesterol ≥190 mg/dL should generally start:', a: ['High-intensity statin therapy', 'Lifestyle changes only for 1 year', 'Niacin', 'Fish oil supplements'], why: 'Severe primary hypercholesterolemia warrants high-intensity statin therapy regardless of calculated risk.' },
+    { q: 'First-line antibiotic for uncomplicated cystitis in a non-pregnant woman:', a: ['Nitrofurantoin', 'Ciprofloxacin', 'Amoxicillin', 'Ceftriaxone'], why: 'Nitrofurantoin, TMP-SMX (if local resistance is low) or fosfomycin; fluoroquinolones are reserved.' },
+    { q: 'Recombinant zoster vaccine is routinely recommended starting at age:', a: ['50', '30', '65', '18 for everyone'], why: 'Two doses for adults 50+, or 19+ if immunocompromised.' },
+    { q: 'Routine osteoporosis screening with DXA for women begins at age:', a: ['65', '40', '50 for all women', '75'], why: 'Earlier in postmenopausal women with increased fracture risk.' },
+    { q: 'First-line antihypertensive for a Black adult without CKD:', a: ['Thiazide diuretic or calcium channel blocker', 'Beta-blocker', 'Alpha-blocker', 'Loop diuretic'], why: 'Thiazides and CCBs are more effective as initial monotherapy in this population.' },
+    { q: 'First-line long-term urate-lowering therapy for recurrent gout:', a: ['Allopurinol', 'Colchicine', 'Indomethacin', 'Prednisone'], why: 'Colchicine, NSAIDs and steroids treat flares; allopurinol lowers urate long-term.' },
+  ],
+  ent: [
+    { q: 'Sudden unilateral sensorineural hearing loss — treat promptly with:', a: ['Corticosteroids', 'Amoxicillin', 'Decongestants', 'Observation for 3 months'], why: 'Early steroids (oral or intratympanic) improve recovery; urgent audiometry is needed.' },
+    { q: 'New unilateral middle ear effusion in an adult requires evaluation for:', a: ['Nasopharyngeal carcinoma', 'Acoustic neuroma', 'Cholesteatoma only', 'Allergic rhinitis'], why: 'A nasopharyngeal mass can obstruct the eustachian tube; nasopharyngoscopy is indicated.' },
+    { q: 'Unilateral sensorineural hearing loss with tinnitus — rule out:', a: ['Vestibular schwannoma', 'Otosclerosis', 'Cerumen impaction', 'Presbycusis'], why: 'MRI of the internal auditory canals is the test of choice for acoustic neuroma.' },
+    { q: 'Treatment for posterior-canal BPPV:', a: ['Epley maneuver', 'Meclizine for 3 months', 'Vestibular nerve section', 'Antibiotics'], why: 'Canalith repositioning moves the displaced otoconia; Dix-Hallpike makes the diagnosis.' },
+    { q: 'Classic triad of Ménière disease (plus aural fullness):', a: ['Episodic vertigo, fluctuating low-frequency SNHL, tinnitus', 'Constant vertigo, conductive loss, otorrhea', 'Brief positional vertigo with normal hearing', 'Facial palsy, ear pain, vesicles'], why: 'It is caused by endolymphatic hydrops.' },
+    { q: 'Most common salivary gland tumor:', a: ['Pleomorphic adenoma', 'Warthin tumor', 'Mucoepidermoid carcinoma', 'Adenoid cystic carcinoma'], why: 'A benign mixed tumor, usually of the parotid.' },
+    { q: 'The primary concern in Ludwig angina is:', a: ['Airway compromise', 'Hearing loss', 'Facial nerve palsy', 'Sinus thrombosis'], why: 'Rapidly spreading submandibular cellulitis can elevate the tongue and obstruct the airway.' },
+    { q: 'A toddler with unilateral, foul-smelling purulent nasal discharge most likely has:', a: ['A nasal foreign body', 'Viral rhinitis', 'Allergic rhinitis', 'Choanal atresia'], why: 'Unilateral foul discharge in young children is a foreign body until proven otherwise.' },
+  ],
+  obgyn: [
+    { q: 'Painless third-trimester bleeding — what must be avoided until ultrasound?', a: ['Digital cervical examination', 'IV access', 'Fetal heart monitoring', 'Blood type and screen'], why: 'Placenta previa: a digital exam can provoke catastrophic hemorrhage.' },
+    { q: 'Painful vaginal bleeding with a tender, rigid uterus after trauma suggests:', a: ['Placental abruption', 'Placenta previa', 'Vasa previa', 'Bloody show'], why: 'Premature separation of the placenta; risk factors include hypertension, cocaine and trauma.' },
+    { q: 'Most common cause of postpartum hemorrhage:', a: ['Uterine atony', 'Retained placenta', 'Genital tract lacerations', 'Coagulopathy'], why: 'The "4 Ts": tone (most common), trauma, tissue, thrombin.' },
+    { q: 'First-line uterotonic for postpartum hemorrhage:', a: ['Oxytocin', 'Methylergonovine', 'Terbutaline', 'Magnesium sulfate'], why: 'Oxytocin plus uterine massage; methylergonovine is avoided in hypertension.' },
+    { q: 'Medical treatment for a stable, unruptured ectopic pregnancy:', a: ['Methotrexate', 'Misoprostol alone', 'Mifepristone', 'Oxytocin'], why: 'Methotrexate requires hemodynamic stability and reliable follow-up of β-hCG.' },
+    { q: 'Most common site of ectopic pregnancy:', a: ['Ampulla of the fallopian tube', 'Ovary', 'Cervix', 'Abdominal cavity'], why: 'About 95% are tubal, most in the ampulla.' },
+    { q: 'Preeclampsia is new-onset hypertension after ___ weeks with proteinuria or severe features.', a: ['20', '12', '28', '36'], why: 'Hypertension before 20 weeks suggests chronic hypertension (or molar pregnancy).' },
+    { q: 'Universal group B Streptococcus screening is performed at:', a: ['36–37 weeks', '12–14 weeks', '24–28 weeks', 'At admission for labor only'], why: 'Rectovaginal culture at 36 0/7–37 6/7 weeks guides intrapartum antibiotics.' },
+  ],
+  cards: [
+    { q: 'Stable narrow-complex SVT persists after vagal maneuvers. Next drug?', a: ['Adenosine', 'Amiodarone', 'Digoxin', 'Atropine'], why: 'Adenosine transiently blocks the AV node, terminating re-entrant SVT.' },
+    { q: 'Tachyarrhythmia with a pulse and hypotension (unstable):', a: ['Synchronized cardioversion', 'Unsynchronized defibrillation', 'IV adenosine', 'Observation'], why: 'Unstable patients with a pulse get synchronized cardioversion.' },
+    { q: 'Classic ECG of acute pericarditis:', a: ['Diffuse ST elevation with PR depression', 'ST elevation in II, III, aVF only', 'Peaked T waves', 'Delta waves'], why: 'Widespread concave ST elevation; PR depression is highly suggestive.' },
+    { q: 'First-line treatment of acute idiopathic pericarditis:', a: ['NSAID or aspirin plus colchicine', 'Prednisone alone', 'Anticoagulation', 'Pericardiectomy'], why: 'Colchicine reduces recurrence; steroids increase the recurrence risk.' },
+    { q: "Beck's triad (hypotension, JVD, muffled heart sounds) indicates:", a: ['Cardiac tamponade', 'Tension pneumothorax', 'Massive pulmonary embolism', 'Aortic dissection'], why: 'Also look for pulsus paradoxus and electrical alternans; treat with pericardiocentesis.' },
+    { q: 'Crescendo-decrescendo systolic murmur at the right upper sternal border radiating to the carotids:', a: ['Aortic stenosis', 'Mitral regurgitation', 'Aortic regurgitation', 'Mitral stenosis'], why: 'Syncope, angina and heart failure are ominous symptoms.' },
+    { q: 'The murmur of hypertrophic cardiomyopathy gets louder with:', a: ['Valsalva maneuver', 'Squatting', 'Handgrip', 'Leg raise'], why: 'Lower preload increases outflow obstruction; most other murmurs soften with Valsalva.' },
+    { q: 'Tearing chest pain radiating to the back with unequal arm blood pressures:', a: ['Aortic dissection', 'Acute pericarditis', 'Esophageal spasm', 'Stable angina'], why: 'A widened mediastinum may be seen; thrombolytics are contraindicated.' },
+  ],
+  em: [
+    { q: 'Organophosphate poisoning (SLUDGE, bradycardia, bronchorrhea) — give:', a: ['Atropine and pralidoxime', 'Physostigmine', 'Naloxone', 'Flumazenil'], why: 'Atropine blocks muscarinic effects; pralidoxime regenerates acetylcholinesterase.' },
+    { q: 'Tricyclic antidepressant overdose with a wide QRS — treat with:', a: ['Sodium bicarbonate', 'Physostigmine', 'Procainamide', 'Flumazenil'], why: 'Sodium loading and alkalinization overcome sodium-channel blockade.' },
+    { q: 'First treatment for carbon monoxide poisoning:', a: ['100% oxygen by non-rebreather', 'Methylene blue', 'Sodium nitrite', 'Observation on room air'], why: 'High-flow O₂ shortens the CO half-life; consider hyperbaric therapy for severe cases.' },
+    { q: 'Antidote for methanol or ethylene glycol poisoning:', a: ['Fomepizole', 'N-acetylcysteine', 'Deferoxamine', 'Glucagon'], why: 'Fomepizole inhibits alcohol dehydrogenase, preventing toxic metabolites.' },
+    { q: 'Antidote for beta-blocker overdose with refractory bradycardia:', a: ['Glucagon', 'Calcium disodium EDTA', 'Naloxone', 'Atropine only'], why: 'Glucagon raises cAMP independently of beta receptors; high-dose insulin is also used.' },
+    { q: 'Specific treatment for life-threatening digoxin toxicity:', a: ['Digoxin immune Fab', 'Calcium chloride', 'Activated charcoal alone', 'Hemodialysis'], why: 'Indications include dysrhythmias and potassium above ~5.0 in acute toxicity.' },
+    { q: 'Immediate treatment of a tension pneumothorax:', a: ['Needle decompression', 'Chest X-ray first', 'Intubation', 'CT chest'], why: 'Clinical diagnosis: decompress first, then place a chest tube.' },
+    { q: 'Heat stroke is defined by core temperature above ~40 °C plus:', a: ['Central nervous system dysfunction', 'Heavy sweating', 'Muscle cramps only', 'Normal mental status'], why: 'Rapid cooling (e.g., cold-water immersion) is the priority.' },
+  ],
+  surg: [
+    { q: 'Most common cause of large bowel obstruction in adults:', a: ['Colorectal cancer', 'Adhesions', 'Volvulus', 'Hernia'], why: 'Adhesions cause most small bowel obstructions; cancer causes most large bowel obstructions.' },
+    { q: 'Sigmoid volvulus ("coffee bean" sign) in a stable patient — initial management:', a: ['Endoscopic detorsion', 'Immediate colectomy', 'Observation', 'Barium enema'], why: 'Decompress endoscopically, then elective sigmoidectomy because recurrence is common.' },
+    { q: 'Classic presentation of acute mesenteric ischemia:', a: ['Pain out of proportion to exam', 'Painless bloody diarrhea in a young patient', 'RUQ pain after fatty meals', 'Pain relieved by eating'], why: 'Often with atrial fibrillation; lactate rises late.' },
+    { q: 'Most common cause of acute pancreatitis in the United States:', a: ['Gallstones', 'Hypertriglyceridemia', 'Medications', 'ERCP'], why: 'Gallstones, then alcohol.' },
+    { q: 'Lab threshold supporting the diagnosis of acute pancreatitis:', a: ['Lipase at least 3× the upper limit of normal', 'Any elevation of amylase', 'Lipase above 1.5× normal', 'Elevated ALT'], why: 'Two of three: typical pain, lipase/amylase ≥3× ULN, imaging findings.' },
+    { q: 'Full-thickness esophageal rupture after forceful vomiting:', a: ['Boerhaave syndrome', 'Mallory-Weiss tear', 'Zenker diverticulum', 'Achalasia'], why: 'Mallory-Weiss is a partial mucosal tear; Boerhaave is transmural and a surgical emergency.' },
+    { q: 'Most common hernia in both men and women:', a: ['Indirect inguinal hernia', 'Femoral hernia', 'Direct inguinal hernia', 'Umbilical hernia'], why: 'Femoral hernias are more common in women than in men, but indirect inguinal is still most common overall.' },
+    { q: 'Parkland formula for burn resuscitation (first 24 hours):', a: ['4 mL × kg × %TBSA, half in the first 8 hours', '2 mL × kg × %TBSA, all in 24 hours evenly', '10 mL × kg, then maintenance', '1 L per 10% TBSA'], why: 'Lactated Ringer; titrate to urine output.' },
+  ],
+  derm: [
+    { q: 'Most common subtype of melanoma:', a: ['Superficial spreading', 'Nodular', 'Lentigo maligna', 'Acral lentiginous'], why: 'Acral lentiginous is the most common subtype in people with darker skin.' },
+    { q: 'Most important prognostic factor for localized melanoma:', a: ['Breslow thickness', 'Lesion diameter', 'Patient age', 'Color variation'], why: 'Depth of invasion predicts metastatic risk and guides margins and node biopsy.' },
+    { q: 'Actinic keratosis is a precursor of:', a: ['Squamous cell carcinoma', 'Basal cell carcinoma', 'Melanoma', 'Seborrheic keratosis'], why: 'Rough, scaly, sun-exposed papules; treat with cryotherapy or topical agents.' },
+    { q: 'Quick bedside test to confirm tinea:', a: ['KOH preparation', 'Tzanck smear', 'Wood lamp for all cases', 'Patch testing'], why: 'KOH dissolves keratin, showing hyphae.' },
+    { q: 'Tinea capitis requires:', a: ['Oral antifungal therapy (griseofulvin or terbinafine)', 'Topical clotrimazole alone', 'Topical steroids', 'Oral antibiotics'], why: 'Topical agents do not penetrate the hair shaft.' },
+    { q: 'First-line treatment for scabies:', a: ['Permethrin 5% cream', 'Topical hydrocortisone', 'Oral cephalexin', 'Ketoconazole shampoo'], why: 'Treat close contacts and wash bedding; oral ivermectin is an alternative.' },
+    { q: 'Isotretinoin requires strict pregnancy prevention because it is:', a: ['Highly teratogenic', 'Hepatotoxic only in men', 'A cause of infertility', 'Contraindicated with sunscreen'], why: 'Enrollment in the iPLEDGE program is required in the US.' },
+    { q: 'Acanthosis nigricans is most commonly associated with:', a: ['Insulin resistance', 'Hypothyroidism', 'Iron deficiency', 'Psoriasis'], why: 'Sudden, extensive onset in older adults can signal gastric adenocarcinoma.' },
+  ],
+  ortho: [
+    { q: 'Nerve most often injured in an anterior shoulder dislocation:', a: ['Axillary nerve', 'Radial nerve', 'Long thoracic nerve', 'Ulnar nerve'], why: 'Check deltoid sensation over the "regimental badge" area.' },
+    { q: 'An obese adolescent with hip or knee pain and a limp:', a: ['Slipped capital femoral epiphysis', 'Legg-Calvé-Perthes disease', 'Osgood-Schlatter disease', 'Transient synovitis'], why: 'Knee pain can be referred hip pain; treatment is surgical pinning.' },
+    { q: 'A 4–10-year-old boy with a painless limp and avascular necrosis of the femoral head:', a: ['Legg-Calvé-Perthes disease', 'SCFE', 'Septic arthritis', 'Developmental dysplasia of the hip'], why: 'Idiopathic AVN of the femoral head in young children.' },
+    { q: 'Suspected septic arthritis — the key diagnostic step:', a: ['Joint aspiration (arthrocentesis)', 'MRI', 'Plain X-ray only', 'Serum uric acid'], why: 'Synovial WBC, Gram stain and culture guide treatment; often >50,000 WBC/µL.' },
+    { q: 'Tibial tubercle pain and swelling in an active adolescent:', a: ['Osgood-Schlatter disease', 'Patellar dislocation', 'Osteosarcoma', 'ACL tear'], why: 'Traction apophysitis; it is self-limited.' },
+    { q: 'Osteomyelitis organism classically associated with sickle cell disease:', a: ['Salmonella', 'Pseudomonas', 'Pasteurella', 'Mycobacterium tuberculosis'], why: 'S. aureus is still the most common overall.' },
+    { q: 'Carpal tunnel syndrome compresses the:', a: ['Median nerve', 'Ulnar nerve', 'Radial nerve', 'Musculocutaneous nerve'], why: 'Tinel and Phalen tests; thenar atrophy is a late finding.' },
+    { q: 'Hypoxemia, confusion and a petechial rash 1–3 days after a femur fracture:', a: ['Fat embolism syndrome', 'Pulmonary embolism from DVT', 'Compartment syndrome', 'Sepsis'], why: 'Early fixation of long-bone fractures reduces the risk.' },
+  ],
+  anes: [
+    { q: 'Treatment for local anesthetic systemic toxicity with cardiovascular collapse:', a: ['IV lipid emulsion', 'Dantrolene', 'Sugammadex', 'Naloxone'], why: 'Lipid emulsion acts as a "lipid sink"; also give airway support and seizure control.' },
+    { q: 'Induction agent that tends to preserve blood pressure and airway reflexes:', a: ['Ketamine', 'Propofol', 'Thiopental', 'Midazolam'], why: 'A sympathomimetic dissociative agent, useful in trauma and asthma.' },
+    { q: 'Induction agent associated with adrenal suppression:', a: ['Etomidate', 'Ketamine', 'Propofol', 'Dexmedetomidine'], why: 'It inhibits 11β-hydroxylase; it is hemodynamically stable.' },
+    { q: 'Succinylcholine is a:', a: ['Depolarizing neuromuscular blocker', 'Non-depolarizing neuromuscular blocker', 'Acetylcholinesterase inhibitor', 'Volatile anesthetic'], why: 'It causes fasciculations, then paralysis; it can trigger malignant hyperthermia and hyperkalemia.' },
+    { q: 'Glycopyrrolate is given with neostigmine to:', a: ['Prevent muscarinic effects such as bradycardia', 'Speed neuromuscular reversal', 'Treat nausea', 'Provide sedation'], why: 'Neostigmine raises acetylcholine at muscarinic as well as nicotinic sites.' },
+    { q: 'ASA fasting guideline for clear liquids before elective anesthesia:', a: ['2 hours', '8 hours', '6 hours', 'Midnight the night before'], why: '6 hours for a light meal and 8 hours for fatty meals.' },
+    { q: 'Earliest sign of malignant hyperthermia under anesthesia:', a: ['Rising end-tidal CO₂', 'High fever', 'Dark urine', 'Bradycardia'], why: 'Hypercarbia and tachycardia precede hyperthermia; stop triggers and give dantrolene.' },
+    { q: 'Most reliable confirmation of endotracheal tube placement:', a: ['Continuous waveform capnography', 'Chest rise alone', 'Fogging in the tube', 'Breath sounds over the stomach'], why: 'Sustained exhaled CO₂ confirms tracheal placement.' },
+  ],
+  rads: [
+    { q: 'Imaging of choice for suspected PE in a stable patient with normal renal function:', a: ['CT pulmonary angiography', 'Chest X-ray only', 'Echocardiogram', 'Abdominal ultrasound'], why: 'A V/Q scan is an alternative when contrast is contraindicated.' },
+    { q: 'Kerley B lines on chest X-ray suggest:', a: ['Interstitial pulmonary edema', 'Pneumothorax', 'Lobar pneumonia', 'Sarcoidosis only'], why: 'Short horizontal lines at the lung periphery, classic in congestive heart failure.' },
+    { q: '"Deep sulcus sign" on a supine chest X-ray indicates:', a: ['Pneumothorax', 'Pleural effusion', 'Pneumoperitoneum', 'Atelectasis'], why: 'Air collects anteriorly and basally when the patient is supine.' },
+    { q: 'Dilated small bowel loops with multiple air-fluid levels:', a: ['Small bowel obstruction', 'Ileus only in all cases', 'Free perforation', 'Toxic megacolon'], why: 'CT confirms the transition point and complications.' },
+    { q: 'Initial imaging for suspected deep vein thrombosis:', a: ['Compression duplex ultrasound', 'CT venography', 'Contrast venography', 'Plain X-ray'], why: 'Non-compressibility of the vein is diagnostic.' },
+    { q: '"Bamboo spine" on spinal X-ray is characteristic of:', a: ['Ankylosing spondylitis', 'Osteoporosis', 'Multiple myeloma', 'Spinal stenosis'], why: 'Syndesmophytes fuse the vertebrae; it is associated with HLA-B27.' },
+    { q: '"Thumbprint sign" on a lateral neck X-ray:', a: ['Epiglottitis', 'Croup', 'Retropharyngeal abscess', 'Foreign body'], why: 'A swollen epiglottis; secure the airway in a controlled setting.' },
+    { q: '"Apple-core" lesion on barium enema suggests:', a: ['Colorectal carcinoma', 'Diverticulosis', 'Ulcerative colitis', 'Hirschsprung disease'], why: 'An annular constricting tumor; colonoscopy with biopsy confirms it.' },
+  ],
+  im: [
+    { q: 'Euvolemic hyponatremia with inappropriately concentrated urine:', a: ['SIADH', 'Primary polydipsia', 'Hypovolemic hyponatremia', 'Diabetes insipidus'], why: 'Urine osmolality >100 and urine sodium usually >30; restrict fluids first.' },
+    { q: 'Correcting chronic hyponatremia too fast risks:', a: ['Osmotic demyelination syndrome', 'Cerebral edema', 'Seizures from hypernatremia only', 'Hyperkalemia'], why: 'Limit correction to about 8 mEq/L per 24 hours in chronic cases.' },
+    { q: 'Initial priority in diabetic ketoacidosis management:', a: ['IV isotonic fluid resuscitation', 'Bicarbonate for all patients', 'Oral metformin', 'Insulin before checking potassium'], why: 'Fluids first, then insulin once K⁺ is at least 3.3 mEq/L.' },
+    { q: 'In DKA, hold insulin and replete potassium first if K⁺ is below:', a: ['3.3 mEq/L', '5.5 mEq/L', '4.5 mEq/L', '2.0 mEq/L'], why: 'Insulin drives potassium into cells and can cause fatal hypokalemia.' },
+    { q: 'First-line treatment of hepatic encephalopathy:', a: ['Lactulose', 'Neomycin alone', 'Benzodiazepines', 'High-protein diet'], why: 'Rifaximin is added to prevent recurrence.' },
+    { q: 'Spontaneous bacterial peritonitis is diagnosed when ascitic fluid shows:', a: ['Neutrophils ≥250 cells/µL', 'SAAG < 1.1', 'Total protein > 2.5 g/dL', 'Glucose > 100 mg/dL'], why: 'Treat with a third-generation cephalosporin; albumin reduces renal failure.' },
+    { q: 'Hypotension, hyponatremia, hyperkalemia and hyperpigmentation suggest:', a: ['Primary adrenal insufficiency (Addison disease)', 'Cushing syndrome', 'Primary hyperaldosteronism', 'Pheochromocytoma'], why: 'High ACTH causes hyperpigmentation; aldosterone deficiency causes hyperkalemia.' },
+    { q: 'Most specific single lab test for iron-deficiency anemia:', a: ['Low serum ferritin', 'Low MCV', 'High RDW', 'Low reticulocyte count'], why: 'Ferritin reflects iron stores, but it is an acute-phase reactant.' },
+  ],
+  neuro: [
+    { q: 'Uncal herniation classically causes:', a: ['An ipsilateral fixed, dilated pupil', 'Bilateral pinpoint pupils', 'Contralateral ptosis only', 'Upward gaze palsy'], why: 'The herniating uncus compresses CN III parasympathetic fibers.' },
+    { q: 'Osmotic therapy for acutely elevated intracranial pressure:', a: ['Mannitol or hypertonic saline', 'D5W infusion', 'Furosemide alone', 'Normal saline bolus at 4 L'], why: 'Also elevate the head of bed and use brief hyperventilation as a bridge.' },
+    { q: 'Nimodipine is given after aneurysmal subarachnoid hemorrhage to:', a: ['Reduce delayed ischemia from vasospasm', 'Lower ICP', 'Prevent rebleeding', 'Treat seizures'], why: 'Vasospasm peaks around days 4–14.' },
+    { q: 'Most common cause of non-traumatic subarachnoid hemorrhage:', a: ['Ruptured saccular (berry) aneurysm', 'Arteriovenous malformation', 'Hypertensive bleed', 'Amyloid angiopathy'], why: 'Associated with ADPKD, smoking and hypertension.' },
+    { q: 'Gait disturbance, urinary incontinence and dementia suggest:', a: ['Normal pressure hydrocephalus', 'Alzheimer disease', 'Parkinson disease', 'Multiple sclerosis'], why: '"Wet, wobbly, wacky" — may improve with a ventriculoperitoneal shunt.' },
+    { q: 'Suspected malignant spinal cord compression — give immediately:', a: ['High-dose dexamethasone', 'Morphine only', 'IV heparin', 'Lumbar puncture'], why: 'Then emergent MRI of the entire spine and radiation or surgery.' },
+    { q: 'Most common primary malignant brain tumor in adults:', a: ['Glioblastoma', 'Meningioma', 'Medulloblastoma', 'Pituitary adenoma'], why: 'Meningioma is the most common primary tumor overall but is usually benign; metastases outnumber both.' },
+    { q: 'Brown-Séquard syndrome (spinal hemisection) causes:', a: ['Ipsilateral weakness and proprioception loss, contralateral pain and temperature loss', 'Bilateral leg weakness only', 'Loss of pain/temperature in a cape distribution', 'Isolated urinary retention'], why: 'Spinothalamic fibers cross near their entry level; the dorsal columns cross in the medulla.' },
+  ],
+};
+for (const k in MORE_QUESTIONS) if (SPECIALTIES[k]) SPECIALTIES[k].q.push(...MORE_QUESTIONS[k]);
+
 // ===================== RESIDENCY — ENGINE =====================
 'use strict';
 
@@ -611,6 +784,7 @@ function newSave(name, gender, skin, scrub, hair) {
     inv: [],
     order: ['classroom', ...FIXED_ORDER, ...shuffle(RANDOM_POOL), 'neuro'],
     cleared: 0, shop: [], finished: false, deaths: 0, correct: 0, asked: 0,
+    weapons: [pick(WEAPON_KEYS)], seenQ: {},
   };
 }
 function saveGame() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable */ } }
@@ -639,7 +813,7 @@ function genItem(type, ilvl, tier) {
   else if (tier === 2) name = `${base} ${pick(RARE_SUFFIX)}`;
   else if (tier === 1) name = `${pick(MAGIC_PREFIX)} ${base}`;
   else name = base;
-  const keys = shuffle(STAT_KEYS).slice(0, 3); // three random, distinct stats
+  const keys = shuffle(STAT_KEYS).slice(0, [2, 3, 4, 5][tier]); // Normal 2, Magic 3, Rare 4, Legendary 5 random stats
   const stats = {};
   for (const k of keys) stats[k] = Math.max(1, Math.round((2 + ilvl * 0.75) * TIERS[tier].mult * STATS[k].per * rand(0.65, 1.35)));
   const price = Math.round(18 * (1 + ilvl * 0.45) * TIERS[tier].price * rand(0.9, 1.15));
@@ -881,7 +1055,8 @@ function startZone(idx) {
     floor: buildFloor(Z.setting, Z.accent), props: placeProps(Z.setting),
     player: { x: WW / 2, y: WH / 2 + 40, r: 14, hp: stats.maxHp, atkT: 0, face: 1, walk: 0, iframe: 0, rootT: 0, slowT: 0, dash: null, spin: 0, spinTick: 0, shield: 0, cds: [0, 0, 0, 0], moving: false },
     stats, enemies: [], projs: [], hazards: [], pickups: [], floaters: [], parts: [], rings: [],
-    waves: [5 + bump, 7 + bump, 9 + bump], wave: 0, queue: [], spawnT: 0, waveDelay: 1.5,
+    waves: [10 + Math.floor(idx * 1.3), 13 + Math.floor(idx * 1.4)], wave: 0, queue: [], spawnT: 0, waveDelay: 1.5,
+    beams: [], bolts: [], swings: [], mist: [], flashes: [], sparks: [], wcd: {},
     boss: null, bossSpawned: false, qIdx: 0, shake: 0, banner: { text: Z.place, sub: Z.boss ? `${Z.name} rotation` : 'Orientation week', t: 3.5 },
     earned: { money: 0, bp: 0, xp: 0, items: [] }, cam: { x: WW / 2, y: WH / 2 },
   };
@@ -892,8 +1067,8 @@ function queueWave() {
   const n = G.waves[G.wave];
   G.queue = [];
   for (let i = 0; i < n; i++) G.queue.push(pick(G.zone.staff));
-  if (G.wave === 2 && G.idx >= 3) G.queue.push('lawyer');
-  if (G.wave === 1 && G.idx >= 5) G.queue.push(pick(['exec', 'insurance', 'lawyer']));
+  if (G.wave === 1 && G.idx >= 3) G.queue.push('lawyer');
+  if (G.wave === 0 && G.idx >= 5) G.queue.push(pick(['exec', 'insurance', 'lawyer']));
   G.spawnT = 0;
 }
 function freeSpot(minDistFromPlayer) {
@@ -914,7 +1089,7 @@ function spawnEnemy(type, at) {
   look.skin = pick(['#f1c9a5', '#e0ac85', '#c68642', '#8d5524', '#ffdbac']);
   look.hair = pick(['#2b1b10', '#4a3020', '#8a6a3a', '#111', '#c9b48a', '#777']);
   look.female = Math.random() < 0.5;
-  look.style = look.female ? pick(['long', 'ponytail', 'bun', 'short']) : pick(['short', 'short', 'buzz', 'receding']);
+  look.style = pick(HAIR_STYLES[look.female ? 'f' : 'm'])[0];
   look.beard = !look.female && Math.random() < 0.25;
   look.glasses = Math.random() < (type === 'pharmacist' || type === 'exec' || type === 'labtech' ? 0.5 : 0.15);
   look.eye = pick(['#4a3222', '#2d1f16', '#3b5a7a', '#4a6b3a']);
@@ -932,6 +1107,13 @@ function spawnEnemy(type, at) {
   burst(e.x, e.y, '#ffffff', 10);
   return e;
 }
+function pickQuestions(key, bank) {
+  S.seenQ = S.seenQ || {};
+  let fresh = bank.filter(q => !S.seenQ[key + ':' + q.q]);
+  if (fresh.length < 4) { for (const q of bank) delete S.seenQ[key + ':' + q.q]; fresh = bank.slice(); } // whole bank seen: start a new cycle
+  const seen = bank.filter(q => !fresh.includes(q));
+  return shuffle(fresh).concat(shuffle(seen));
+}
 function spawnBoss() {
   const Z = G.zone;
   const pos = { x: clamp(G.player.x, WALL + 120, WW - WALL - 120), y: clamp(G.player.y - 300, WALL + 120, WH - WALL - 120) };
@@ -942,7 +1124,7 @@ function spawnBoss() {
     spd: 75 + G.idx * 2, dmg: 14 * (1 + G.idx * 0.28), atkT: 2.0, stunT: 0, markT: 0, poisonT: 0, poisonDps: 0, slowT: 0,
     face: 1, walk: 0, flash: 0, spawnT: 1, patterns, pat: null, patT: 0, patData: {}, enrageT: 0,
     thresholds: Z.final ? [0.8, 0.6, 0.4, 0.2] : [0.75, 0.5, 0.25],
-    questions: shuffle(Z.q), look: (() => { const f = /Rosa|Linda|Grace|Tasha|Naomi|Ingrid|Eleanor/.test(Z.boss); return { top: '#2f3a4a', bottom: '#2f3a4a', coat: true, longcoat: true, female: f, style: f ? pick(['bun', 'long', 'ponytail']) : pick(['short', 'receding', 'buzz']), beard: !f && Math.random() < 0.4, glasses: Math.random() < 0.45, skin: pick(['#f1c9a5', '#e0ac85', '#c68642', '#8d5524']), hair: pick(['#222', '#555', '#9a9a9a', '#3a2a1a', '#c8c8c8']), tie: f ? null : Z.accent, shoe: '#1c1f25', steth: '#2a2d33' }; })(),
+    questions: pickQuestions(Z.key, Z.q), look: (() => { const f = /Rosa|Linda|Grace|Tasha|Naomi|Ingrid|Eleanor/.test(Z.boss); return { top: '#2f3a4a', bottom: '#2f3a4a', coat: true, longcoat: true, female: f, style: pick(HAIR_STYLES[f ? 'f' : 'm'])[0], beard: !f && Math.random() < 0.4, glasses: Math.random() < 0.45, skin: pick(['#f1c9a5', '#e0ac85', '#c68642', '#8d5524']), hair: pick(['#222', '#555', '#9a9a9a', '#3a2a1a', '#c8c8c8']), tie: f ? null : Z.accent, shoe: '#1c1f25', steth: '#2a2d33' }; })(),
   };
   G.boss = b; G.enemies.push(b); G.bossSpawned = true;
   G.banner = { text: `ATTENDING: ${Z.boss}`, sub: Z.final ? 'FINAL BOSS — Neurosurgery' : Z.name, t: 3, boss: true };
@@ -1010,6 +1192,7 @@ function gainXp(n) {
     S.xp -= xpNeeded(S.level); S.level++;
     G.stats = calcStats(); G.player.hp = G.stats.maxHp;
     G.banner = { text: `LEVEL ${S.level}`, sub: 'New talent rank available — press T', t: 2.2, lvl: true };
+    if (S.level >= MAX_LEVEL) { const w2 = grantSecondWeapon(); if (w2) G.banner = { text: `MAX LEVEL — SECOND WEAPON!`, sub: `${WEAPONS[w2].icon} ${WEAPONS[w2].name} now fires alongside your ${WEAPONS[S.weapons[0]].name}`, t: 4.5, lvl: true }; }
     sfx('level'); burst(G.player.x, G.player.y, '#ffd54a', 40, 260);
   }
   if (S.level >= MAX_LEVEL) S.xp = 0;
@@ -1091,6 +1274,7 @@ function checkBossQuestion(b) {
     b.hp = Math.max(b.hp, 1);
     G.qIdx++;
     const q = b.questions[(G.qIdx - 1) % b.questions.length];
+    S.seenQ = S.seenQ || {}; S.seenQ[b.spec.key + ':' + q.q] = 1;
     G.state = 'question';
     UI.askQuestion(b, q, G.stats.qTime, G.stats.ruleout, correct => {
       S.asked++;
@@ -1214,6 +1398,7 @@ function update(dt) {
   G.parts = G.parts.filter(q => q.t > 0);
   for (const r of G.rings) { r.t -= dt; r.r += (r.max - r.r) * Math.min(1, dt * 10); }
   G.rings = G.rings.filter(r => r.t > 0);
+  updateWeaponFx(dt);
   if (G.state !== 'play' && G.state !== 'won') return;
 
   const p = G.player, st = G.stats;
@@ -1258,7 +1443,11 @@ function update(dt) {
     // attack
     p.atkT -= dt;
     const wantFire = mouse.down || keys[' '] || (touchMode && G.enemies.some(e => !e.dead && dist2(e, p) < 560 * 560));
-    if (wantFire && p.atkT <= 0 && !p.dash) { basicAttack(); p.atkT = 1 / st.atkRate; }
+    const rateMult = st.atkRate / 3;
+    S.weapons.forEach((id, slot) => {
+      G.wcd[id] = (G.wcd[id] || 0) - dt;
+      if (wantFire && G.wcd[id] <= 0 && !p.dash) { fireWeapon(id, slot); G.wcd[id] = 1 / (WEAPONS[id].rate * rateMult); }
+    });
   }
 
   // camera
@@ -1270,7 +1459,7 @@ function update(dt) {
   if (G.state === 'play') {
     if (G.queue.length) {
       G.spawnT -= dt;
-      if (G.spawnT <= 0) { spawnEnemy(G.queue.shift()); G.spawnT = 0.55; }
+      if (G.spawnT <= 0) { spawnEnemy(G.queue.shift()); if (G.queue.length && Math.random() < 0.5) spawnEnemy(G.queue.shift()); G.spawnT = 0.32; }
     } else if (!G.enemies.some(e => !e.dead)) {
       G.waveDelay -= dt;
       if (G.waveDelay <= 0) {
@@ -1359,14 +1548,16 @@ function update(dt) {
 
   // projectiles
   for (const pr of G.projs) {
+    if (pr.from === 'p') updateWeaponProj(pr, dt);
     pr.x += pr.vx * dt; pr.y += pr.vy * dt; pr.life -= dt;
+    if (pr.boomerang && !pr.returning && (pr.x < WALL || pr.x > WW - WALL || pr.y < WALL - 10 || pr.y > WH - WALL || pointInProp(pr.x, pr.y + 30))) { pr.life = Math.min(pr.life, pr.maxLife * 0.49); continue; }
     if (pr.x < WALL || pr.x > WW - WALL || pr.y < WALL - 10 || pr.y > WH - WALL || pointInProp(pr.x, pr.y + 30)) { pr.life = 0; burst(pr.x, pr.y, pr.color, 3, 60); continue; }
     if (pr.from === 'p') {
       for (const e of G.enemies) {
         if (e.dead || pr.hits.has(e)) continue;
         if (Math.hypot(e.x - pr.x, e.y - (e.boss ? 40 : 28) - pr.y) < e.r + pr.r + 8) {
-          pr.hits.add(e); hitEnemy(e, pr.dmg, { poison: pr.poison });
-          burst(pr.x, pr.y, pr.color, 4, 90);
+          pr.hits.add(e); hitEnemy(e, pr.dmg, { poison: pr.poison, quiet: pr.kind === 'staple' && Math.random() < 0.6 });
+          G.sparks.push(...sparkSet(pr.x, pr.y, pr.color, pr.kind === 'saw' ? 6 : 3));
           if (pr.pierce-- <= 0) { pr.life = 0; break; }
         }
       }
@@ -1525,6 +1716,7 @@ function render() {
     if (P.spin > 0) { ctx.strokeStyle = 'rgba(255,120,120,0.6)'; ctx.lineWidth = 4; for (let i = 0; i < 3; i++) { const a = G.t * 14 + i * 2.1; ctx.beginPath(); ctx.arc(P.x, P.y - 20, 105, a, a + 0.8); ctx.stroke(); } }
     ctx.globalAlpha = P.iframe > 0 && !P.dash ? 0.6 : 1;
     drawPerson(P.x, P.y, Object.assign(playerLook(), { face: P.face, walk: P.moving ? P.walk : 0, scale: 1.25 }));
+    drawHeldWeapons();
     ctx.globalAlpha = 1;
     if (P.rootT > 0) { ctx.strokeStyle = '#fff3c4'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(P.x, P.y, 20, 7, 0, 0, 7); ctx.stroke(); }
   } });
@@ -1534,11 +1726,12 @@ function render() {
   for (const pr of G.projs) {
     ctx.fillStyle = pr.color;
     if (pr.from === 'e') { ctx.shadowColor = pr.color; ctx.shadowBlur = 10; }
-    if (pr.kind === 'pill') { ctx.save(); ctx.translate(pr.x, pr.y); ctx.rotate(Math.atan2(pr.vy, pr.vx)); roundRect(-6, -3, 12, 6, 3); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(0, -3, 6, 6); ctx.restore(); }
+    if (pr.from === 'p' && pr.kind !== 'pulse') { drawPlayerProjectile(pr); }
     else if (pr.from === 'p') { const g = ctx.createRadialGradient(pr.x, pr.y, 0, pr.x, pr.y, pr.r * 2.2); g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, pr.color); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(pr.x, pr.y, pr.r * 2.2, 0, 7); ctx.fill(); }
     else { ctx.beginPath(); ctx.arc(pr.x, pr.y, pr.r, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.beginPath(); ctx.arc(pr.x - pr.r * 0.3, pr.y - pr.r * 0.3, pr.r * 0.35, 0, 7); ctx.fill(); }
     ctx.shadowBlur = 0;
   }
+  drawWeaponFx();
   for (const q of G.parts) { ctx.globalAlpha = Math.min(1, q.t * 2); ctx.fillStyle = q.color; ctx.fillRect(q.x - q.r / 2, q.y - q.r / 2, q.r, q.r); }
   ctx.globalAlpha = 1;
   for (const r of G.rings) { ctx.strokeStyle = r.color; ctx.globalAlpha = r.t * 2; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, 7); ctx.stroke(); }
@@ -1637,6 +1830,324 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
+// ===================== RESIDENCY — PRIMARY WEAPONS & WEAPON EFFECTS =====================
+'use strict';
+
+function ensureWeapons() {
+  if (!S) return;
+  if (!Array.isArray(S.weapons) || !S.weapons.length || !WEAPONS[S.weapons[0]]) S.weapons = [pick(WEAPON_KEYS)];
+  if (S.level >= MAX_LEVEL && S.weapons.length < 2) S.weapons.push(pick(WEAPON_KEYS.filter(k => k !== S.weapons[0])));
+}
+function grantSecondWeapon() {
+  if (S.weapons.length >= 2) return null;
+  const id = pick(WEAPON_KEYS.filter(k => k !== S.weapons[0]));
+  S.weapons.push(id);
+  return id;
+}
+
+function handPos(slot) { // muzzle position for weapon slot 0 (front hand) / 1 (back hand)
+  const p = G.player, a = aimAngle();
+  const off = slot ? -7 : 7;
+  return { x: p.x + Math.cos(a) * 22 - Math.sin(a) * off * 0.4, y: p.y - 30 + Math.sin(a) * 18 + Math.cos(a) * off * 0.3, a };
+}
+function weaponDamage(W) {
+  const bonus = W.kind === 'proj' ? 1 : 1 + 0.2 * G.stats.extraProj;
+  return playerDamage(G.stats.basicMult * W.dmg * bonus);
+}
+function enemyAimY(e) { return e.y - (e.boss ? 46 : 32); }
+function angDiff(a, b) { let d = a - b; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return Math.abs(d); }
+
+function fireWeapon(id, slot) {
+  const W = WEAPONS[id]; const h = handPos(slot); const a = h.a;
+  const dmg = weaponDamage(W);
+  G.flashes.push({ x: h.x, y: h.y, a, t: 0.07, kind: id });
+  switch (W.kind) {
+    case 'proj': {
+      const n = (W.count || 1) + G.stats.extraProj;
+      for (let i = 0; i < n; i++) {
+        let ang = a;
+        if (W.count) ang = a + (Math.random() - 0.5) * W.spread * 2;
+        else if (n > 1) ang = a + (i - (n - 1) / 2) * 0.12;
+        if (W.spread && !W.count) ang += (Math.random() - 0.5) * W.spread * 2;
+        const spd = W.spd * (W.count ? rand(0.85, 1.15) : 1);
+        fireProj(h.x, h.y, ang, spd, { dmg, kind: W.proj, life: W.life, pierce: W.pierce || 0, poison: !!W.poison, color: W.color, r: W.r || 6,
+          spin: Math.random() * 6, ox: h.x, oy: h.y, boomerang: !!W.boomerang, maxLife: W.life, pillCol: pick([['#ff7ad9', '#ffffff'], ['#5aa2ff', '#ffe066'], ['#7dffb0', '#ffffff'], ['#ff9f43', '#c084fc']]) });
+      }
+      break; }
+    case 'beam': {
+      // march along the aim line; stop at props, walls or the first enemy
+      let ex = h.x, ey = h.y, hit = null;
+      const dx = Math.cos(a), dy = Math.sin(a);
+      for (let d = 0; d <= W.range; d += 8) {
+        const x = h.x + dx * d, y = h.y + dy * d;
+        if (x < WALL || x > WW - WALL || y < WALL - 10 || y > WH - WALL || pointInProp(x, y + 30)) { ex = x; ey = y; break; }
+        ex = x; ey = y;
+        for (const e of G.enemies) { if (e.dead || e.spawnT > 0.25) continue; if (Math.hypot(e.x - x, enemyAimY(e) - y) < e.r + 10) { hit = e; break; } }
+        if (hit) break;
+      }
+      if (hit) { hitEnemy(hit, dmg, { quiet: Math.random() < 0.5 }); G.sparks.push(...sparkSet(ex, ey, '#ffc830', 5)); }
+      G.beams.push({ x1: h.x, y1: h.y, x2: ex, y2: ey, t: 0.09, max: 0.09 });
+      break; }
+    case 'melee': {
+      for (const e of G.enemies) {
+        if (e.dead) continue;
+        const d = Math.hypot(e.x - G.player.x, enemyAimY(e) - (G.player.y - 30));
+        if (d < W.range + e.r && angDiff(Math.atan2(enemyAimY(e) - (G.player.y - 30), e.x - G.player.x), a) < W.arc / 2) {
+          hitEnemy(e, dmg, {});
+          if (!e.boss) { const k = 34 / Math.max(1, d); e.x += (e.x - G.player.x) * k; e.y += (e.y - G.player.y) * k; resolveProps(e); e.stunT = Math.max(e.stunT, 0.15); }
+          G.sparks.push(...sparkSet(e.x, enemyAimY(e), '#ffb347', 5));
+        }
+      }
+      G.swings.push({ x: G.player.x, y: G.player.y - 30, a, arc: W.arc, range: W.range, t: 0.2, max: 0.2, dir: (G.swingDir = -(G.swingDir || 1)) });
+      break; }
+    case 'chain': {
+      const p = G.player, from = { x: h.x, y: h.y };
+      let pool = G.enemies.filter(e => !e.dead && e.spawnT <= 0.25 && Math.hypot(e.x - p.x, e.y - p.y) < W.range);
+      if (!pool.length) { G.bolts.push({ pts: [from, { x: h.x + Math.cos(a) * 90, y: h.y + Math.sin(a) * 90 }], t: 0.12, max: 0.12, fizzle: true }); break; }
+      pool.sort((A, B) => (angDiff(Math.atan2(A.y - p.y, A.x - p.x), a) * 300 + Math.hypot(A.x - p.x, A.y - p.y)) - (angDiff(Math.atan2(B.y - p.y, B.x - p.x), a) * 300 + Math.hypot(B.x - p.x, B.y - p.y)));
+      const pts = [from]; let cur = pool[0], mult = 1; const hitSet = new Set();
+      for (let i = 0; i <= W.chains && cur; i++) {
+        hitSet.add(cur); pts.push({ x: cur.x, y: enemyAimY(cur) });
+        hitEnemy(cur, dmg * mult, { quiet: i > 0 }); G.sparks.push(...sparkSet(cur.x, enemyAimY(cur), '#bfefff', 6));
+        mult *= 0.7;
+        const last = cur; cur = null; let bd = 220;
+        for (const e of G.enemies) { if (e.dead || hitSet.has(e)) continue; const d = Math.hypot(e.x - last.x, e.y - last.y); if (d < bd) { bd = d; cur = e; } }
+      }
+      G.bolts.push({ pts, t: 0.16, max: 0.16 });
+      break; }
+    case 'cone': {
+      const p = G.player;
+      for (const e of G.enemies) {
+        if (e.dead) continue;
+        const d = Math.hypot(e.x - p.x, enemyAimY(e) - (p.y - 30));
+        if (d < W.range + e.r && angDiff(Math.atan2(enemyAimY(e) - (p.y - 30), e.x - p.x), a) < W.arc / 2) { hitEnemy(e, dmg, { quiet: true }); e.slowT = Math.max(e.slowT, 1.2); e.frostT = 1.2; }
+      }
+      for (let i = 0; i < 5; i++) { const ang = a + (Math.random() - 0.5) * W.arc * 0.9, s = rand(380, 560); G.mist.push({ x: h.x, y: h.y, vx: Math.cos(ang) * s, vy: Math.sin(ang) * s, r: rand(7, 11), t: 0, max: rand(0.4, 0.55) }); }
+      break; }
+  }
+  if (W.kind !== 'cone' || Math.random() < 0.3) sfx('shoot');
+}
+
+function sparkSet(x, y, color, n) { const out = []; for (let i = 0; i < n; i++) { const a = rand(0, Math.PI * 2), s = rand(120, 320); out.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: rand(0.12, 0.26), color }); } return out; }
+
+function updateWeaponFx(dt) {
+  for (const b of G.beams) b.t -= dt;
+  G.beams = G.beams.filter(b => b.t > 0);
+  for (const b of G.bolts) b.t -= dt;
+  G.bolts = G.bolts.filter(b => b.t > 0);
+  for (const s of G.swings) s.t -= dt;
+  G.swings = G.swings.filter(s => s.t > 0);
+  for (const f of G.flashes) f.t -= dt;
+  G.flashes = G.flashes.filter(f => f.t > 0);
+  for (const m of G.mist) { m.t += dt; m.x += m.vx * dt; m.y += m.vy * dt; m.vx *= 0.9; m.vy *= 0.9; m.r += 70 * dt; }
+  G.mist = G.mist.filter(m => m.t < m.max);
+  for (const s of G.sparks) { s.t -= dt; s.x += s.vx * dt; s.y += s.vy * dt; s.vx *= 0.88; s.vy = s.vy * 0.88 + 260 * dt; }
+  G.sparks = G.sparks.filter(s => s.t > 0);
+  for (const e of G.enemies) if (e.frostT > 0) e.frostT -= dt;
+}
+function updateWeaponProj(pr, dt) { // called for player projectiles before movement
+  pr.spin = (pr.spin || 0) + dt * (pr.kind === 'saw' ? 34 : pr.kind === 'scalpel' ? 24 : pr.kind === 'pill' ? 9 : 0);
+  if (pr.kind === 'wave') pr.r = (pr.r || 18) + 34 * dt;
+  if (pr.boomerang && pr.life < pr.maxLife * 0.5) {
+    const p = G.player, tx = p.x, ty = p.y - 30, d = Math.hypot(tx - pr.x, ty - pr.y) || 1;
+    if (!pr.returning) { pr.returning = true; pr.hits = new Set(); }
+    pr.vx = (tx - pr.x) / d * 680; pr.vy = (ty - pr.y) / d * 680;
+    if (d < 24) pr.life = 0;
+  }
+  if (pr.boomerang && pr.kind === 'saw' && Math.random() < 0.25) G.sparks.push(...sparkSet(pr.x, pr.y + 6, '#ffcf6b', 1));
+}
+
+// ---------- rendering ----------
+function drawPlayerProjectile(pr) {
+  const ang = Math.atan2(pr.vy, pr.vx);
+  ctx.save(); ctx.translate(pr.x, pr.y);
+  const SC = { syringe: 1.6, scalpel: 1.6, staple: 1.7, pill: 1.5, saw: 1.25, wave: 1.15 }[pr.kind] || 1; ctx.scale(SC, SC);
+  switch (pr.kind) {
+    case 'syringe': {
+      ctx.rotate(ang);
+      ctx.strokeStyle = 'rgba(127,227,255,0.18)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(-34, 0); ctx.lineTo(-12, 0); ctx.stroke();
+      ctx.fillStyle = 'rgba(235,245,255,0.55)'; roundRect(-11, -3.2, 17, 6.4, 1.5); ctx.fill();          // barrel
+      ctx.fillStyle = '#3fc6e6'; ctx.fillRect(-4, -2.4, 10, 4.8);                                        // medication
+      ctx.strokeStyle = 'rgba(40,60,80,0.6)'; ctx.lineWidth = 0.6; for (let i = -8; i < 6; i += 3) { ctx.beginPath(); ctx.moveTo(i, -3.2); ctx.lineTo(i, -1.6); ctx.stroke(); }
+      ctx.fillStyle = '#4a5563'; ctx.fillRect(-12, -2.6, 2.4, 5.2); ctx.fillRect(-17, -0.9, 5, 1.8); ctx.fillRect(-18.5, -3.4, 1.6, 6.8); // plunger
+      ctx.fillStyle = '#c9d2dc'; ctx.fillRect(-12.4, -4.4, 1.2, 8.8);                                    // flange
+      ctx.fillStyle = '#e5ebf1'; ctx.fillRect(6, -1.2, 2.4, 2.4);                                        // hub
+      ctx.strokeStyle = '#dfe6ee'; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(8.4, 0); ctx.lineTo(17, 0); ctx.stroke(); // needle
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(-9, -2.6, 12, 0.8);
+      break; }
+    case 'scalpel': {
+      ctx.rotate(pr.spin);
+      for (let g = 2; g >= 1; g--) { ctx.globalAlpha = 0.18 / g; ctx.rotate(-0.35); drawScalpelShape(); }
+      ctx.globalAlpha = 1; ctx.rotate(0.7); drawScalpelShape();
+      break; }
+    case 'staple': {
+      ctx.rotate(ang);
+      ctx.strokeStyle = 'rgba(213,221,230,0.25)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-26, 0); ctx.lineTo(-4, 0); ctx.stroke();
+      ctx.strokeStyle = '#e9eef3'; ctx.lineWidth = 1.5; ctx.lineJoin = 'miter';
+      ctx.beginPath(); ctx.moveTo(-3, -4); ctx.lineTo(3, -4); ctx.lineTo(3, 4); ctx.lineTo(-3, 4); ctx.stroke();
+      ctx.strokeStyle = '#7d8996'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(3.6, -4); ctx.lineTo(3.6, 4); ctx.stroke();
+      break; }
+    case 'pill': {
+      ctx.rotate(pr.spin);
+      const [c1, c2] = pr.pillCol || ['#ff7ad9', '#ffffff'];
+      ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(1.5, 5, 7, 2, 0, 0, 7); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.arc(-4, 0, 3.6, Math.PI / 2, Math.PI * 1.5); ctx.lineTo(4, -3.6); ctx.arc(4, 0, 3.6, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.clip();
+      ctx.fillStyle = c1; ctx.fillRect(-8, -4, 8, 8); ctx.fillStyle = c2; ctx.fillRect(0, -4, 8, 8);
+      ctx.fillStyle = lg(0, -4, 0, 4, [[0, 'rgba(255,255,255,0.55)'], [0.45, 'rgba(255,255,255,0)'], [1, 'rgba(0,0,0,0.25)']]); ctx.fillRect(-8, -4, 16, 8);
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(0, -3.6); ctx.lineTo(0, 3.6); ctx.stroke();
+      break; }
+    case 'wave': {
+      ctx.rotate(ang);
+      const R = pr.r || 18, fade = clamp(pr.life / 0.62, 0, 1);
+      for (let i = 0; i < 3; i++) {
+        const rr = R - i * 7; if (rr < 4) continue;
+        ctx.strokeStyle = `rgba(160,215,255,${(0.75 - i * 0.22) * fade})`; ctx.lineWidth = 4 - i;
+        ctx.beginPath(); ctx.arc(-R, 0, rr + R * 0.0, -0.75, 0.75); ctx.stroke();
+      }
+      ctx.strokeStyle = `rgba(255,255,255,${0.7 * fade})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(-R, 0, R, -0.6, 0.6); ctx.stroke();
+      break; }
+    case 'saw': {
+      for (let g = 3; g >= 1; g--) { ctx.globalAlpha = 0.12; drawSawBlade(pr.spin - g * 0.25, pr.r || 14, -pr.vx / 680 * g * 5, -pr.vy / 680 * g * 5); }
+      ctx.globalAlpha = 1; drawSawBlade(pr.spin, pr.r || 14, 0, 0);
+      break; }
+    case 'bolt': { // Grand Rounds knowledge bolts
+      ctx.rotate(ang);
+      const g = ctx.createLinearGradient(-30, 0, 8, 0); g.addColorStop(0, 'rgba(159,208,255,0)'); g.addColorStop(1, 'rgba(159,208,255,0.85)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(-10, 0, 22, 4, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(2, 0, 6, 3, 0, 0, 7); ctx.fill();
+      break; }
+    default: {
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, pr.r * 2.2); g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, pr.color); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, pr.r * 2.2, 0, 7); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+function drawScalpelShape() {
+  ctx.fillStyle = lg(-10, 0, 0, 0, [[0, '#7c8a97'], [1, '#b9c4cf']]); roundRect(-11, -1.6, 10, 3.2, 1); ctx.fill(); // handle
+  ctx.fillStyle = lg(0, -3, 0, 3, [[0, '#ffffff'], [0.5, '#cfd8e2'], [1, '#8796a5']]);
+  ctx.beginPath(); ctx.moveTo(-1, -1.6); ctx.lineTo(6, -1.8); ctx.quadraticCurveTo(11, -0.6, 12, 1.6); ctx.lineTo(-1, 1.6); ctx.closePath(); ctx.fill(); // blade
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(1, 1.3); ctx.lineTo(11, 1.4); ctx.stroke();
+}
+function drawSawBlade(rot, R, dx, dy) {
+  ctx.save(); ctx.translate(dx, dy); ctx.rotate(rot);
+  ctx.beginPath();
+  const teeth = 16;
+  for (let i = 0; i < teeth; i++) { const a0 = i / teeth * Math.PI * 2, a1 = (i + 0.5) / teeth * Math.PI * 2; ctx.lineTo(Math.cos(a0) * R, Math.sin(a0) * R); ctx.lineTo(Math.cos(a1) * (R - 3.2), Math.sin(a1) * (R - 3.2)); }
+  ctx.closePath();
+  const sg = ctx.createRadialGradient(-3, -3, 1, 0, 0, R); sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.5, '#c2ccd6'); sg.addColorStop(1, '#6f7c89'); ctx.fillStyle = sg;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.arc(0, 0, R * 0.62, 0.3, 1.6); ctx.stroke();
+  ctx.fillStyle = '#3a4450'; ctx.beginPath(); ctx.arc(0, 0, R * 0.3, 0, 7); ctx.fill();
+  ctx.fillStyle = '#ffb020'; ctx.beginPath(); ctx.arc(0, 0, R * 0.14, 0, 7); ctx.fill();
+  ctx.restore();
+}
+function jagged(x1, y1, x2, y2, amp, segs) {
+  const pts = [[x1, y1]]; const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+  for (let i = 1; i < segs; i++) { const t = i / segs, o = (Math.random() - 0.5) * amp * 2 * Math.sin(Math.PI * t); pts.push([x1 + dx * t + nx * o, y1 + dy * t + ny * o]); }
+  pts.push([x2, y2]); return pts;
+}
+function strokePts(pts) { ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.stroke(); }
+function drawWeaponFx() {
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  // cryo mist (normal blend, soft)
+  for (const m of G.mist) {
+    const k = m.t / m.max, a = (1 - k) * 0.8;
+    const g = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r); g.addColorStop(0, `rgba(240,250,255,${a})`); g.addColorStop(0.6, `rgba(190,230,255,${a * 0.6})`); g.addColorStop(1, 'rgba(190,230,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, 7); ctx.fill();
+    if (Math.random() < 0.3) { ctx.fillStyle = `rgba(255,255,255,${1 - k})`; ctx.fillRect(m.x + rand(-m.r, m.r) * 0.6, m.y + rand(-m.r, m.r) * 0.6, 1.6, 1.6); }
+  }
+  // reflex hammer swings: motion-blur crescent + hammer head
+  for (const s of G.swings) {
+    const k = 1 - s.t / s.max, a0 = s.a - s.arc / 2 * s.dir, sweep = s.arc * s.dir * Math.min(1, k * 1.8), aNow = a0 + sweep;
+    ctx.globalAlpha = (1 - k) * 0.85;
+    const steps = 10;
+    for (let i = 0; i < steps; i++) {
+      const t0 = a0 + sweep * (i / steps), t1 = a0 + sweep * ((i + 1) / steps);
+      ctx.strokeStyle = `rgba(150,175,205,${0.08 + 0.45 * (i / steps)})`; ctx.lineWidth = 6 + 18 * (i / steps);
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.range * 0.78, Math.min(t0, t1), Math.max(t0, t1)); ctx.stroke();
+    }
+    ctx.globalAlpha = 1 - k * 0.6;
+    ctx.save(); ctx.translate(s.x + Math.cos(aNow) * s.range * 0.78, s.y + Math.sin(aNow) * s.range * 0.78); ctx.rotate(aNow + Math.PI / 2);
+    ctx.fillStyle = '#7a4f2a'; ctx.fillRect(-1.4, 0, 2.8, 20);                         // handle toward player
+    ctx.fillStyle = lg(-9, 0, 9, 0, [[0, '#a5332b'], [0.5, '#d9534f'], [1, '#8f2a23']]);
+    ctx.beginPath(); ctx.moveTo(-10, -3); ctx.lineTo(10, -4.5); ctx.quadraticCurveTo(12, 0, 10, 4.5); ctx.lineTo(-10, 3); ctx.quadraticCurveTo(-12, 0, -10, -3); ctx.fill(); // Taylor hammer head
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  // penlight beams
+  for (const b of G.beams) {
+    const k = b.t / b.max;
+    ctx.strokeStyle = `rgba(255,190,40,${0.28 * k})`; ctx.lineWidth = 13; ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,214,90,${0.85 * k})`; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,255,255,${0.95 * k})`; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
+    const g = ctx.createRadialGradient(b.x2, b.y2, 0, b.x2, b.y2, 16); g.addColorStop(0, `rgba(255,255,240,${k})`); g.addColorStop(0.35, `rgba(255,200,60,${0.7 * k})`); g.addColorStop(1, 'rgba(255,200,60,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x2, b.y2, 16, 0, 7); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  // defibrillator arcs
+  for (const b of G.bolts) {
+    const k = b.t / b.max;
+    for (let i = 0; i < b.pts.length - 1; i++) {
+      const A = b.pts[i], B = b.pts[i + 1];
+      const main = jagged(A.x, A.y, B.x, B.y, 14, 9);
+      ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = `rgba(40,120,255,${0.35 * k})`; ctx.lineWidth = 9; strokePts(main); ctx.strokeStyle = `rgba(30,110,240,${0.8 * k})`; ctx.lineWidth = 3.4; strokePts(main); ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = `rgba(170,225,255,${0.8 * k})`; ctx.lineWidth = 3; strokePts(main);
+      ctx.strokeStyle = `rgba(255,255,255,${k})`; ctx.lineWidth = 1.2; strokePts(main);
+      if (!b.fizzle) for (let j = 0; j < 2; j++) { const m = main[1 + Math.floor(Math.random() * (main.length - 2))]; const br = jagged(m[0], m[1], m[0] + rand(-34, 34), m[1] + rand(-34, 34), 6, 4); ctx.strokeStyle = `rgba(170,225,255,${0.6 * k})`; ctx.lineWidth = 1; strokePts(br); }
+    }
+  }
+  // muzzle flashes
+  for (const f of G.flashes) {
+    const W = WEAPONS[f.kind]; if (!W) continue;
+    const k = f.t / 0.07, col = { penlight: '255,240,190', defib: '150,210,255', cryo: '210,240,255', castsaw: '255,200,120', syringe: '160,230,255', ultrasound: '160,215,255' }[f.kind] || '255,255,255';
+    const R = (W.kind === 'melee' ? 0 : 14) * k; if (!R) continue;
+    const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, R); g.addColorStop(0, `rgba(${col},${0.9 * k})`); g.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, R, 0, 7); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  // impact sparks
+  for (const s of G.sparks) {
+    ctx.globalAlpha = Math.min(1, s.t * 5);
+    ctx.strokeStyle = 'rgba(60,40,10,0.35)'; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * 0.025, s.y - s.vy * 0.025); ctx.stroke();
+    ctx.strokeStyle = s.color; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * 0.025, s.y - s.vy * 0.025); ctx.stroke();
+  }
+  ctx.restore();
+  // frost on slowed enemies
+  for (const e of G.enemies) if (e.frostT > 0 && !e.dead) { ctx.fillStyle = `rgba(200,235,255,${0.25 * Math.min(1, e.frostT)})`; ctx.beginPath(); ctx.ellipse(e.x, e.y - 34, 14, 30, 0, 0, 7); ctx.fill(); }
+}
+
+// the weapon in the player's hand(s)
+function drawHeldWeapons() {
+  const P = G.player; if (!S.weapons) return;
+  const a = aimAngle();
+  S.weapons.forEach((id, slot) => {
+    const h = { x: P.x + Math.cos(a) * 14 - Math.sin(a) * (slot ? -6 : 6) * 0.4, y: P.y - 30 + Math.sin(a) * 10 + (slot ? 3 : 0) };
+    ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(a); if (Math.cos(a) < 0) ctx.scale(1.35, -1.35); else ctx.scale(1.35, 1.35);
+    const sw = G.swings.length && id === 'hammer' ? 0 : 1;
+    drawWeaponModel(id, sw);
+    ctx.restore();
+  });
+}
+function drawWeaponModel(id, visible) {
+  if (!visible) return;
+  switch (id) {
+    case 'penlight': ctx.fillStyle = lg(0, -2, 0, 2, [[0, '#d7dde4'], [1, '#7f8a96']]); roundRect(-4, -2, 16, 4, 1.5); ctx.fill(); ctx.fillStyle = '#2b6cb0'; ctx.fillRect(2, -2.2, 1.4, 4.4); ctx.fillStyle = '#fffbe0'; ctx.beginPath(); ctx.arc(12, 0, 1.8, 0, 7); ctx.fill(); break;
+    case 'syringe': ctx.fillStyle = 'rgba(235,245,255,0.8)'; roundRect(-4, -2.6, 15, 5.2, 1); ctx.fill(); ctx.fillStyle = '#3fc6e6'; ctx.fillRect(3, -2, 7, 4); ctx.fillStyle = '#4a5563'; ctx.fillRect(-9, -0.8, 5, 1.6); ctx.strokeStyle = '#dfe6ee'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(18, 0); ctx.stroke(); break;
+    case 'hammer': ctx.fillStyle = '#7a4f2a'; ctx.fillRect(-4, -1.2, 18, 2.4); ctx.fillStyle = '#c0453d'; ctx.beginPath(); ctx.ellipse(14, 0, 2.8, 7, 0, 0, 7); ctx.fill(); break;
+    case 'scalpel': ctx.save(); ctx.translate(2, 0); drawScalpelShape(); ctx.restore(); break;
+    case 'defib': ctx.fillStyle = '#e8b400'; roundRect(-2, -5, 12, 10, 2); ctx.fill(); ctx.fillStyle = '#2b2f36'; ctx.fillRect(10, -5.5, 3, 11); ctx.fillStyle = '#222'; ctx.fillRect(-6, -1.5, 5, 3); if (Math.random() < 0.3) { ctx.strokeStyle = '#bfefff'; ctx.lineWidth = 0.8; strokePts(jagged(13, -4, 13, 4, 3, 4)); } break;
+    case 'stapler': ctx.fillStyle = lg(0, -4, 0, 4, [[0, '#9aa6b2'], [1, '#4f5964']]); roundRect(-4, -3.5, 18, 7, 2); ctx.fill(); ctx.fillStyle = '#2f8f6a'; ctx.fillRect(-4, 2, 8, 5); break;
+    case 'cryo': ctx.fillStyle = lg(0, -4, 0, 4, [[0, '#e9f4fb'], [1, '#8fb3c9']]); roundRect(-4, -4, 11, 8, 3); ctx.fill(); ctx.fillStyle = '#5b6b78'; ctx.fillRect(7, -1.5, 8, 3); ctx.fillStyle = '#1f6fb2'; ctx.fillRect(-2, -1, 7, 2); break;
+    case 'pills': ctx.fillStyle = '#f39c12'; roundRect(-3, -4.5, 12, 9, 1.5); ctx.fill(); ctx.fillStyle = '#ffffff'; ctx.fillRect(9, -5, 3, 10); ctx.fillStyle = '#fff'; ctx.fillRect(0, -2, 6, 4); break;
+    case 'ultrasound': ctx.fillStyle = lg(0, -3, 0, 3, [[0, '#f2f4f7'], [1, '#aab4bf']]); roundRect(-5, -2.4, 13, 4.8, 2); ctx.fill(); ctx.beginPath(); ctx.ellipse(10, 0, 3.4, 5.2, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#4b5563'; ctx.fillRect(-9, -0.6, 4, 1.2); break;
+    case 'castsaw': ctx.fillStyle = '#3a6fb0'; roundRect(-5, -3.5, 14, 7, 2.5); ctx.fill(); drawSawBlade((G ? G.t : 0) * 40, 6, 12, 0); break;
+  }
+}
+function weaponLine(id) { const W = WEAPONS[id]; return `${W.icon} ${W.name}`; }
+
 // ===================== RESIDENCY — CHARACTER RENDERER (v2) =====================
 // Shaded 3/4-view people: proportioned bodies, faces with eyes/brows/nose, hair styles,
 // clothing detail (scrub V-necks, white-coat lapels, suits, gowns, lead aprons), walk cycle.
@@ -1666,6 +2177,24 @@ function drawPerson(x, y, o) {
   if (style === 'long') {
     ctx.fillStyle = lg(-9, -66, -4, -42, [[0, shade(hair, 0.05)], [1, shade(hair, -0.15)]]);
     ctx.beginPath(); ctx.moveTo(-6.5, -64); ctx.bezierCurveTo(-11.5, -60, -11, -48, -9, -43); ctx.quadraticCurveTo(-4, -41.5, -1.5, -45); ctx.lineTo(-1, -56); ctx.closePath(); ctx.fill();
+  }
+
+  if (style === 'bob') {
+    ctx.fillStyle = lg(-9, -66, -2, -50, [[0, shade(hair, 0.05)], [1, shade(hair, -0.18)]]);
+    ctx.beginPath(); ctx.moveTo(-6.5, -64.5); ctx.bezierCurveTo(-11, -61, -10.6, -55, -9.6, -51); ctx.lineTo(-2.2, -50.6); ctx.lineTo(-1, -57); ctx.closePath(); ctx.fill();
+  }
+  if (style === 'afro') {
+    ctx.fillStyle = rg(-1, -64, 2, 14, [[0, shade(hair, 0.1)], [1, shade(hair, -0.2)]]);
+    for (const [cx, cy, r] of [[-6.5, -55.5, 5], [-8, -60.5, 5.6], [-6, -66, 5.6], [0, -68.6, 5.8], [5.8, -67, 5], [-3, -51.5, 3.6]]) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); }
+  }
+  if (style === 'braid') {
+    for (let i = 0; i < 6; i++) {
+      const by = -58 + i * 3.1, bx = -7.6 - i * 0.35;
+      ctx.fillStyle = lg(bx - 2.6, by, bx + 2.6, by, [[0, shade(hair, -0.15)], [0.5, shade(hair, 0.1)], [1, shade(hair, -0.2)]]);
+      ctx.beginPath(); ctx.ellipse(bx + (i % 2 ? 0.7 : -0.7), by, 2.5 - i * 0.12, 2.1, i % 2 ? 0.5 : -0.5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#d34b6a'; ctx.fillRect(-10.4, -40.6, 2.4, 1.3);
+    ctx.fillStyle = shade(hair, -0.05); ctx.beginPath(); ctx.moveTo(-10.2, -39.4); ctx.lineTo(-8, -39.4); ctx.lineTo(-9.6, -36.2); ctx.closePath(); ctx.fill();
   }
 
   // ---------- back arm ----------
@@ -1908,6 +2437,31 @@ function drawHead(o, sk, hair, style, female) {
     if (style === 'long') { ctx.beginPath(); ctx.moveTo(-3.6, -60); ctx.bezierCurveTo(-5.2, -54, -4, -50, -2.4, -48.5); ctx.lineTo(-1.2, -49.5); ctx.quadraticCurveTo(-2.4, -54, -1.8, -59.5); ctx.closePath(); ctx.fill(); }
     if (style === 'ponytail') { ctx.beginPath(); ctx.moveTo(-6.2, -63); ctx.bezierCurveTo(-11.5, -62, -12, -54, -9.6, -49.5); ctx.quadraticCurveTo(-8.4, -55, -5.4, -59.5); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#d34b6a'; ctx.beginPath(); ctx.ellipse(-6.6, -61.4, 1, 1.4, 0.5, 0, 7); ctx.fill(); ctx.fillStyle = hg; }
     if (style === 'bun') { ctx.beginPath(); ctx.arc(-5.4, -66, 3.6, 0, 7); ctx.fill(); }
+    if (style === 'bob') { ctx.beginPath(); ctx.moveTo(-3.8, -60.5); ctx.bezierCurveTo(-5.2, -56, -4.8, -53, -3.6, -51.2); ctx.lineTo(-0.6, -51.4); ctx.quadraticCurveTo(-1.8, -55, -1.6, -60); ctx.closePath(); ctx.fill(); }
+    if (style === 'sidepart') {
+      ctx.beginPath(); ctx.moveTo(-3.6, -66.4); ctx.bezierCurveTo(1, -70.6, 7.4, -68.8, 9.2, -63.2); ctx.quadraticCurveTo(5.6, -64.6, 1.6, -64.6); ctx.quadraticCurveTo(-1.5, -64.8, -3.6, -66.4); ctx.fill();
+      ctx.strokeStyle = shade(hair, -0.3); ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(-4.4, -62); ctx.quadraticCurveTo(-4.2, -65.5, -3.2, -67.4); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(-1.5, -67.6); ctx.quadraticCurveTo(3.5, -69.4, 7.6, -65.4); ctx.stroke();
+    }
+    if (style === 'curly' || style === 'afro') {
+      const big = style === 'afro';
+      for (let i = 0; i <= 9; i++) {
+        const ang = Math.PI * (1.05 + i * 0.1), R = big ? 8.6 : 7.4;
+        const cx = 0.6 + Math.cos(ang) * R, cy = -60.4 + Math.sin(ang) * (R + (big ? 1.4 : 0.6));
+        ctx.fillStyle = rg(cx - 0.6, cy - 0.8, 0.2, big ? 3.4 : 2.6, [[0, shade(hair, 0.16)], [1, shade(hair, -0.12)]]);
+        ctx.beginPath(); ctx.arc(cx, cy, big ? 3.2 : 2.5, 0, 7); ctx.fill();
+      }
+      ctx.fillStyle = hg;
+    }
+    if (style === 'spiky') {
+      for (let i = 0; i < 6; i++) {
+        const ang = Math.PI * (1.1 + i * 0.15), bx = 0.8 + Math.cos(ang) * 6.6, by = -60.4 + Math.sin(ang) * 7.6;
+        const tx = 0.8 + Math.cos(ang - 0.08) * 11.4, ty = -60.4 + Math.sin(ang - 0.08) * 11.6;
+        ctx.fillStyle = i % 2 ? shade(hair, 0.08) : hair;
+        ctx.beginPath(); ctx.moveTo(bx - 2.4 * Math.sin(ang), by + 2.4 * Math.cos(ang)); ctx.lineTo(tx, ty); ctx.lineTo(bx + 2.4 * Math.sin(ang), by - 2.4 * Math.cos(ang)); ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = hg;
+    }
     // highlight strands
     ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(-4.5, -63.5); ctx.quadraticCurveTo(0, -67.6, 5, -65); ctx.stroke();
     ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(-2, -61); ctx.quadraticCurveTo(1, -64.5, 5.4, -63.5); ctx.stroke();
@@ -2218,7 +2772,7 @@ const TitleFX = {
       const d = ENEMIES[t]; const L = Object.assign({}, d.look);
       if (L.top === 'random') L.top = pick(['#c0392b', '#2e86de', '#e67e22', '#8e44ad']);
       L.skin = pick(['#f1c9a5', '#e0ac85', '#c68642', '#8d5524', '#ffdbac']); L.hair = pick(['#2b1b10', '#4a3020', '#8a6a3a', '#111', '#c9b48a', '#777']);
-      L.female = Math.random() < 0.5; L.style = L.female ? pick(['long', 'ponytail', 'bun']) : pick(['short', 'buzz', 'receding']);
+      L.female = Math.random() < 0.5; L.style = pick(HAIR_STYLES[L.female ? 'f' : 'm'])[0];
       L.glasses = Math.random() < 0.25; L.shoe = L.gown ? null : '#1c1f25';
       this.runners.push({ type: t, def: d, x: start - 150 - i * rand(95, 130), look: L, walk: Math.random() * 6, face: 1, a: 1, cured: 0, label: t === 'patient' ? pick(SPECIALTIES[pick(Object.keys(SPECIALTIES))].diseases) : d.name });
     });
@@ -2454,7 +3008,7 @@ const UI = {
     $('#cr-gender').innerHTML = ['f', 'm'].map(g => `<button class="seg ${c.gender === g ? 'on' : ''}" data-k="gender" data-v="${g}">${g === 'f' ? '♀ Female' : '♂ Male'}</button>`).join('');
     $('#cr-skin').innerHTML = sw(['#ffdbac', '#f1c9a5', '#e0ac85', '#c68642', '#8d5524', '#5c3a1e'], 'skin');
     $('#cr-hair').innerHTML = sw(['#111111', '#2b1b10', '#5a3a20', '#a0703a', '#d9b56a', '#8a8a8a', '#a8322a'], 'hair');
-    $('#cr-style').innerHTML = [['short', 'Short'], ['buzz', 'Buzz'], ['long', 'Long'], ['ponytail', 'Ponytail'], ['bun', 'Bun'], ['receding', 'Receding']].map(([k, l]) => `<button class="seg sm ${c.hs === k ? 'on' : ''}" data-k="hs" data-v="${k}">${l}</button>`).join('');
+    $('#cr-style').innerHTML = HAIR_STYLES[c.gender].map(([k, l]) => `<button class="seg sm ${c.hs === k ? 'on' : ''}" data-k="hs" data-v="${k}">${l}</button>`).join('');
     $('#cr-scrub').innerHTML = sw(['#2a7fa8', '#1f3a6b', '#2b8a5e', '#6a3fa0', '#a83a5a', '#3a4450', '#c46a2a'], 'scrub');
     document.querySelectorAll('#create [data-k]').forEach(b => b.onclick = () => {
       c[b.dataset.k] = b.dataset.v;
@@ -2478,6 +3032,7 @@ const UI = {
       <li>You earn one talent rank per level. At the level cap (${MAX_LEVEL}) you can complete exactly two of the four trees.</li>
       <li>Attendings will stop and quiz you (they call it "pimping"). Answer right to stun them.</li></ul>
       <p class="muted">You start with ${S.bp} Brain Power, enough for your first talent rank. Press <b>Talents</b>.</p>
+      <div class="weapon-reveal"><div class="muted small">YOUR RANDOM STARTING WEAPON</div><div class="wr-name">${weaponLine(S.weapons[0])}</div><div class="muted small">${WEAPONS[S.weapons[0]].desc} You'll get a second random weapon at level ${MAX_LEVEL}.</div></div>
       <div class="row end"><button class="btn primary" onclick="UI.closeModal()">Let's go</button></div>`);
   },
 
@@ -2488,7 +3043,8 @@ const UI = {
     this.closeModal();
     this.show('#campus');
     $('#cp-name').textContent = (S.finished ? 'Dr. ' : 'Student Doctor ') + S.name;
-    $('#cp-sub').textContent = `Level ${S.level}${S.level >= MAX_LEVEL ? ' (MAX)' : ''} • ${S.cleared}/${S.order.length} rotations complete`;
+    ensureWeapons();
+    $('#cp-sub').textContent = `Level ${S.level}${S.level >= MAX_LEVEL ? ' (MAX)' : ''} • ${S.cleared}/${S.order.length} rotations complete • ${S.weapons.map(weaponLine).join(' + ')}`;
     $('#cp-money').textContent = '$ ' + fmt(S.money);
     $('#cp-bp').textContent = '🧠 ' + fmt(S.bp);
     $('#cp-xp').style.width = (S.level >= MAX_LEVEL ? 100 : S.xp / xpNeeded(S.level) * 100) + '%';
@@ -2638,7 +3194,7 @@ const UI = {
       <div class="detail">${detail}</div>
       <div class="bag"><h3>Bag (${S.inv.length}/40) ${S.inv.some(i => i.tier === 0) ? `<button class="btn small" onclick="UI.sellNormals()">Sell all Normal</button>` : ''}</h3><div class="baglist">${inv}</div></div>
       <div class="sheet"><h3>Character sheet</h3>
-        ${row('Level', S.level + (S.level >= MAX_LEVEL ? ' (max)' : ` (${fmt(S.xp)}/${fmt(xpNeeded(S.level))} XP)`))}${row('Max HP', fmt(st.maxHp))}${row('Basic attack damage', fmt(st.baseDmg * st.dmgMult * st.basicMult))}
+        ${row('Level', S.level + (S.level >= MAX_LEVEL ? ' (max)' : ` (${fmt(S.xp)}/${fmt(xpNeeded(S.level))} XP)`))}${row('Max HP', fmt(st.maxHp))}${S.weapons.map((id, i) => row(i ? 'Second weapon' : 'Primary weapon', `${weaponLine(id)}`) + row('&nbsp;&nbsp;Damage per hit / attacks per sec', `${fmt(st.baseDmg * st.dmgMult * st.basicMult * WEAPONS[id].dmg * (WEAPONS[id].kind === 'proj' ? 1 : 1 + 0.2 * st.extraProj))} / ${(WEAPONS[id].rate * st.atkRate / 3).toFixed(1)}`)).join('')}${S.weapons.length < 2 ? row('Second weapon', `Unlocks at level ${MAX_LEVEL}`) : ''}
         ${row('Critical chance', Math.round(st.crit * 100) + '%')}${row('Critical damage', Math.round(st.critDmg * 100) + '%')}${row('Attacks per second', st.atkRate.toFixed(2))}
         ${row('Cooldown reduction', Math.round(st.cdr * 100) + '%')}${row('Damage reduction', Math.round(st.dr * 100) + '%')}${row('Move speed', Math.round(st.move))}
         ${row('Money found', '+' + Math.round((st.moneyMult - 1) * 100) + '%')}${row('HP regen / sec', st.regen.toFixed(1))}${row('Coffee', S.coffee + ' / 5')}
@@ -2728,15 +3284,15 @@ const UI = {
     const st = calcStats(), g = st.gear;
     const rows = STAT_KEYS.map(k => `<tr><td><b>${STATS[k].name}</b></td><td>${esc(STAT_INFO[k].does)}</td><td class="nowrap">${esc(STATS[k].desc)}</td><td>${esc(STAT_INFO[k].cap)}</td><td class="muted">${esc(STAT_INFO[k].talents)}</td><td class="nowrap"><b>${g[k]}</b>${g[k] ? ' → ' + STAT_INFO[k].effect(g[k]) : ''}</td></tr>`).join('');
     const total = TIERS.reduce((a, t) => a + t.weight, 0);
-    const tiers = TIERS.map(t => `<tr><td><b style="color:${t.color}">${t.name}</b></td><td>${t.weight}%</td><td>×${t.mult} stat strength</td><td>×${t.price} price</td></tr>`).join('');
+    const tiers = TIERS.map(t => `<tr><td><b style="color:${t.color}">${t.name}</b></td><td>${t.weight}%</td><td>${[2, 3, 4, 5][TIERS.indexOf(t)]} stats, ×${t.mult} strength</td><td>×${t.price} price</td></tr>`).join('');
     return `<div class="guide">
-      <h3>Stat key</h3><p class="muted small">Every gear piece rolls 3 random stats. Hover any stat in the game to see this again.</p>
+      <h3>Stat key</h3><p class="muted small">Gear rolls random stats by rarity: Normal 2, Magic 3, Rare 4, Legendary 5. Hover any stat in the game to see this again.</p>
       <div class="tablewrap"><table class="gtable"><thead><tr><th>Stat</th><th>What it does</th><th>Per point</th><th>Cap</th><th>Talents that stack with it</th><th>You have</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="guide-2">
         <div><h3>Item rarity</h3><div class="tablewrap"><table class="gtable"><thead><tr><th>Tier</th><th>Drop chance</th><th>Stats</th><th>Value</th></tr></thead><tbody>${tiers}</tbody></table></div>
           <p class="muted small">Applies to enemy drops and boss rewards. The shop also caps each restock at 1 Legendary, 2 Rare and 2 Magic. The four odds add up to ${total}%, so they're used as relative weights (Normal ≈ ${(73 / total * 100).toFixed(1)}% in practice). Bosses drop 3 items, elites (attorneys) drop gear often, and anyone else has an 8% chance. Higher item levels have larger stat numbers.</p></div>
         <div><h3>Base character values</h3><ul class="tips small">
-          <li>Health: 100 + 12 per level.</li><li>Basic attack: 10 + 2.2 damage per level, 3 attacks per second.</li>
+          <li>Health: 100 + 12 per level.</li><li>Base damage: 10 + 2.2 per level, multiplied by your weapon (10 weapons, one random at the start; a second random weapon at level 30).</li>
           <li>Critical chance 5%, critical damage 150%.</li><li>Move speed 230.</li>
           <li>Talent ranks: 1 per level (max ${MAX_LEVEL}); a full tree costs ${TREE_POINTS} ranks.</li>
           <li>Money buys gear and coffee. Brain Power buys talent ranks.</li></ul></div>
@@ -2777,7 +3333,7 @@ $('#title-new').onclick = () => {
     UI.modal(`<h2>Start over?</h2><p>This replaces your current character.</p><div class="row end"><button class="btn" onclick="UI.closeModal()">Cancel</button><button class="btn danger" onclick="UI.closeModal();UI.showCreate()">Start new</button></div>`);
   } else UI.showCreate();
 };
-$('#title-continue').onclick = () => { S = loadGame(); if (!S) return; if (!S.shop || !S.shop.length) restockShop(); UI.showCampus(); };
+$('#title-continue').onclick = () => { S = loadGame(); if (!S) return; ensureWeapons(); if (!S.shop || !S.shop.length) restockShop(); saveGame(); UI.showCampus(); };
 $('#cr-go').onclick = () => UI.finishCreate();
 $('#cr-back').onclick = () => document.querySelectorAll('.music-label').forEach(el => el.textContent = Music.on ? '♪ Music: on' : '♪ Music: off');
 UI.showTitle();

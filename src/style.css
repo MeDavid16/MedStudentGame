@@ -215,3 +215,6 @@ p { line-height: 1.5; margin: 8px 0; }
 @media (max-height: 640px) { #title .lede { display: none; } }
 
 #title .title-card::before { content: ''; position: absolute; inset: -40px -80px -30px; z-index: -1; background: radial-gradient(ellipse at 50% 45%, rgba(5,10,16,.72) 0%, rgba(5,10,16,.45) 45%, rgba(5,10,16,0) 72%); pointer-events: none; }
+
+.weapon-reveal { margin-top: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid #3a5170; background: linear-gradient(160deg, #18304a, #121a24); }
+.wr-name { font-size: 20px; font-weight: 900; margin: 4px 0; color: #ffe08a; }

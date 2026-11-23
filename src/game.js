@@ -21,6 +21,7 @@ function newSave(name, gender, skin, scrub, hair) {
     inv: [],
     order: ['classroom', ...FIXED_ORDER, ...shuffle(RANDOM_POOL), 'neuro'],
     cleared: 0, shop: [], finished: false, deaths: 0, correct: 0, asked: 0,
+    weapons: [pick(WEAPON_KEYS)], seenQ: {},
   };
 }
 function saveGame() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable */ } }
@@ -49,7 +50,7 @@ function genItem(type, ilvl, tier) {
   else if (tier === 2) name = `${base} ${pick(RARE_SUFFIX)}`;
   else if (tier === 1) name = `${pick(MAGIC_PREFIX)} ${base}`;
   else name = base;
-  const keys = shuffle(STAT_KEYS).slice(0, 3); // three random, distinct stats
+  const keys = shuffle(STAT_KEYS).slice(0, [2, 3, 4, 5][tier]); // Normal 2, Magic 3, Rare 4, Legendary 5 random stats
   const stats = {};
   for (const k of keys) stats[k] = Math.max(1, Math.round((2 + ilvl * 0.75) * TIERS[tier].mult * STATS[k].per * rand(0.65, 1.35)));
   const price = Math.round(18 * (1 + ilvl * 0.45) * TIERS[tier].price * rand(0.9, 1.15));
@@ -291,7 +292,8 @@ function startZone(idx) {
     floor: buildFloor(Z.setting, Z.accent), props: placeProps(Z.setting),
     player: { x: WW / 2, y: WH / 2 + 40, r: 14, hp: stats.maxHp, atkT: 0, face: 1, walk: 0, iframe: 0, rootT: 0, slowT: 0, dash: null, spin: 0, spinTick: 0, shield: 0, cds: [0, 0, 0, 0], moving: false },
     stats, enemies: [], projs: [], hazards: [], pickups: [], floaters: [], parts: [], rings: [],
-    waves: [5 + bump, 7 + bump, 9 + bump], wave: 0, queue: [], spawnT: 0, waveDelay: 1.5,
+    waves: [10 + Math.floor(idx * 1.3), 13 + Math.floor(idx * 1.4)], wave: 0, queue: [], spawnT: 0, waveDelay: 1.5,
+    beams: [], bolts: [], swings: [], mist: [], flashes: [], sparks: [], wcd: {},
     boss: null, bossSpawned: false, qIdx: 0, shake: 0, banner: { text: Z.place, sub: Z.boss ? `${Z.name} rotation` : 'Orientation week', t: 3.5 },
     earned: { money: 0, bp: 0, xp: 0, items: [] }, cam: { x: WW / 2, y: WH / 2 },
   };
@@ -302,8 +304,8 @@ function queueWave() {
   const n = G.waves[G.wave];
   G.queue = [];
   for (let i = 0; i < n; i++) G.queue.push(pick(G.zone.staff));
-  if (G.wave === 2 && G.idx >= 3) G.queue.push('lawyer');
-  if (G.wave === 1 && G.idx >= 5) G.queue.push(pick(['exec', 'insurance', 'lawyer']));
+  if (G.wave === 1 && G.idx >= 3) G.queue.push('lawyer');
+  if (G.wave === 0 && G.idx >= 5) G.queue.push(pick(['exec', 'insurance', 'lawyer']));
   G.spawnT = 0;
 }
 function freeSpot(minDistFromPlayer) {
@@ -324,7 +326,7 @@ function spawnEnemy(type, at) {
   look.skin = pick(['#f1c9a5', '#e0ac85', '#c68642', '#8d5524', '#ffdbac']);
   look.hair = pick(['#2b1b10', '#4a3020', '#8a6a3a', '#111', '#c9b48a', '#777']);
   look.female = Math.random() < 0.5;
-  look.style = look.female ? pick(['long', 'ponytail', 'bun', 'short']) : pick(['short', 'short', 'buzz', 'receding']);
+  look.style = pick(HAIR_STYLES[look.female ? 'f' : 'm'])[0];
   look.beard = !look.female && Math.random() < 0.25;
   look.glasses = Math.random() < (type === 'pharmacist' || type === 'exec' || type === 'labtech' ? 0.5 : 0.15);
   look.eye = pick(['#4a3222', '#2d1f16', '#3b5a7a', '#4a6b3a']);
@@ -342,6 +344,13 @@ function spawnEnemy(type, at) {
   burst(e.x, e.y, '#ffffff', 10);
   return e;
 }
+function pickQuestions(key, bank) {
+  S.seenQ = S.seenQ || {};
+  let fresh = bank.filter(q => !S.seenQ[key + ':' + q.q]);
+  if (fresh.length < 4) { for (const q of bank) delete S.seenQ[key + ':' + q.q]; fresh = bank.slice(); } // whole bank seen: start a new cycle
+  const seen = bank.filter(q => !fresh.includes(q));
+  return shuffle(fresh).concat(shuffle(seen));
+}
 function spawnBoss() {
   const Z = G.zone;
   const pos = { x: clamp(G.player.x, WALL + 120, WW - WALL - 120), y: clamp(G.player.y - 300, WALL + 120, WH - WALL - 120) };
@@ -352,7 +361,7 @@ function spawnBoss() {
     spd: 75 + G.idx * 2, dmg: 14 * (1 + G.idx * 0.28), atkT: 2.0, stunT: 0, markT: 0, poisonT: 0, poisonDps: 0, slowT: 0,
     face: 1, walk: 0, flash: 0, spawnT: 1, patterns, pat: null, patT: 0, patData: {}, enrageT: 0,
     thresholds: Z.final ? [0.8, 0.6, 0.4, 0.2] : [0.75, 0.5, 0.25],
-    questions: shuffle(Z.q), look: (() => { const f = /Rosa|Linda|Grace|Tasha|Naomi|Ingrid|Eleanor/.test(Z.boss); return { top: '#2f3a4a', bottom: '#2f3a4a', coat: true, longcoat: true, female: f, style: f ? pick(['bun', 'long', 'ponytail']) : pick(['short', 'receding', 'buzz']), beard: !f && Math.random() < 0.4, glasses: Math.random() < 0.45, skin: pick(['#f1c9a5', '#e0ac85', '#c68642', '#8d5524']), hair: pick(['#222', '#555', '#9a9a9a', '#3a2a1a', '#c8c8c8']), tie: f ? null : Z.accent, shoe: '#1c1f25', steth: '#2a2d33' }; })(),
+    questions: pickQuestions(Z.key, Z.q), look: (() => { const f = /Rosa|Linda|Grace|Tasha|Naomi|Ingrid|Eleanor/.test(Z.boss); return { top: '#2f3a4a', bottom: '#2f3a4a', coat: true, longcoat: true, female: f, style: pick(HAIR_STYLES[f ? 'f' : 'm'])[0], beard: !f && Math.random() < 0.4, glasses: Math.random() < 0.45, skin: pick(['#f1c9a5', '#e0ac85', '#c68642', '#8d5524']), hair: pick(['#222', '#555', '#9a9a9a', '#3a2a1a', '#c8c8c8']), tie: f ? null : Z.accent, shoe: '#1c1f25', steth: '#2a2d33' }; })(),
   };
   G.boss = b; G.enemies.push(b); G.bossSpawned = true;
   G.banner = { text: `ATTENDING: ${Z.boss}`, sub: Z.final ? 'FINAL BOSS — Neurosurgery' : Z.name, t: 3, boss: true };
@@ -420,6 +429,7 @@ function gainXp(n) {
     S.xp -= xpNeeded(S.level); S.level++;
     G.stats = calcStats(); G.player.hp = G.stats.maxHp;
     G.banner = { text: `LEVEL ${S.level}`, sub: 'New talent rank available — press T', t: 2.2, lvl: true };
+    if (S.level >= MAX_LEVEL) { const w2 = grantSecondWeapon(); if (w2) G.banner = { text: `MAX LEVEL — SECOND WEAPON!`, sub: `${WEAPONS[w2].icon} ${WEAPONS[w2].name} now fires alongside your ${WEAPONS[S.weapons[0]].name}`, t: 4.5, lvl: true }; }
     sfx('level'); burst(G.player.x, G.player.y, '#ffd54a', 40, 260);
   }
   if (S.level >= MAX_LEVEL) S.xp = 0;
@@ -501,6 +511,7 @@ function checkBossQuestion(b) {
     b.hp = Math.max(b.hp, 1);
     G.qIdx++;
     const q = b.questions[(G.qIdx - 1) % b.questions.length];
+    S.seenQ = S.seenQ || {}; S.seenQ[b.spec.key + ':' + q.q] = 1;
     G.state = 'question';
     UI.askQuestion(b, q, G.stats.qTime, G.stats.ruleout, correct => {
       S.asked++;
@@ -624,6 +635,7 @@ function update(dt) {
   G.parts = G.parts.filter(q => q.t > 0);
   for (const r of G.rings) { r.t -= dt; r.r += (r.max - r.r) * Math.min(1, dt * 10); }
   G.rings = G.rings.filter(r => r.t > 0);
+  updateWeaponFx(dt);
   if (G.state !== 'play' && G.state !== 'won') return;
 
   const p = G.player, st = G.stats;
@@ -668,7 +680,11 @@ function update(dt) {
     // attack
     p.atkT -= dt;
     const wantFire = mouse.down || keys[' '] || (touchMode && G.enemies.some(e => !e.dead && dist2(e, p) < 560 * 560));
-    if (wantFire && p.atkT <= 0 && !p.dash) { basicAttack(); p.atkT = 1 / st.atkRate; }
+    const rateMult = st.atkRate / 3;
+    S.weapons.forEach((id, slot) => {
+      G.wcd[id] = (G.wcd[id] || 0) - dt;
+      if (wantFire && G.wcd[id] <= 0 && !p.dash) { fireWeapon(id, slot); G.wcd[id] = 1 / (WEAPONS[id].rate * rateMult); }
+    });
   }
 
   // camera
@@ -680,7 +696,7 @@ function update(dt) {
   if (G.state === 'play') {
     if (G.queue.length) {
       G.spawnT -= dt;
-      if (G.spawnT <= 0) { spawnEnemy(G.queue.shift()); G.spawnT = 0.55; }
+      if (G.spawnT <= 0) { spawnEnemy(G.queue.shift()); if (G.queue.length && Math.random() < 0.5) spawnEnemy(G.queue.shift()); G.spawnT = 0.32; }
     } else if (!G.enemies.some(e => !e.dead)) {
       G.waveDelay -= dt;
       if (G.waveDelay <= 0) {
@@ -769,14 +785,16 @@ function update(dt) {
 
   // projectiles
   for (const pr of G.projs) {
+    if (pr.from === 'p') updateWeaponProj(pr, dt);
     pr.x += pr.vx * dt; pr.y += pr.vy * dt; pr.life -= dt;
+    if (pr.boomerang && !pr.returning && (pr.x < WALL || pr.x > WW - WALL || pr.y < WALL - 10 || pr.y > WH - WALL || pointInProp(pr.x, pr.y + 30))) { pr.life = Math.min(pr.life, pr.maxLife * 0.49); continue; }
     if (pr.x < WALL || pr.x > WW - WALL || pr.y < WALL - 10 || pr.y > WH - WALL || pointInProp(pr.x, pr.y + 30)) { pr.life = 0; burst(pr.x, pr.y, pr.color, 3, 60); continue; }
     if (pr.from === 'p') {
       for (const e of G.enemies) {
         if (e.dead || pr.hits.has(e)) continue;
         if (Math.hypot(e.x - pr.x, e.y - (e.boss ? 40 : 28) - pr.y) < e.r + pr.r + 8) {
-          pr.hits.add(e); hitEnemy(e, pr.dmg, { poison: pr.poison });
-          burst(pr.x, pr.y, pr.color, 4, 90);
+          pr.hits.add(e); hitEnemy(e, pr.dmg, { poison: pr.poison, quiet: pr.kind === 'staple' && Math.random() < 0.6 });
+          G.sparks.push(...sparkSet(pr.x, pr.y, pr.color, pr.kind === 'saw' ? 6 : 3));
           if (pr.pierce-- <= 0) { pr.life = 0; break; }
         }
       }
@@ -935,6 +953,7 @@ function render() {
     if (P.spin > 0) { ctx.strokeStyle = 'rgba(255,120,120,0.6)'; ctx.lineWidth = 4; for (let i = 0; i < 3; i++) { const a = G.t * 14 + i * 2.1; ctx.beginPath(); ctx.arc(P.x, P.y - 20, 105, a, a + 0.8); ctx.stroke(); } }
     ctx.globalAlpha = P.iframe > 0 && !P.dash ? 0.6 : 1;
     drawPerson(P.x, P.y, Object.assign(playerLook(), { face: P.face, walk: P.moving ? P.walk : 0, scale: 1.25 }));
+    drawHeldWeapons();
     ctx.globalAlpha = 1;
     if (P.rootT > 0) { ctx.strokeStyle = '#fff3c4'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(P.x, P.y, 20, 7, 0, 0, 7); ctx.stroke(); }
   } });
@@ -944,11 +963,12 @@ function render() {
   for (const pr of G.projs) {
     ctx.fillStyle = pr.color;
     if (pr.from === 'e') { ctx.shadowColor = pr.color; ctx.shadowBlur = 10; }
-    if (pr.kind === 'pill') { ctx.save(); ctx.translate(pr.x, pr.y); ctx.rotate(Math.atan2(pr.vy, pr.vx)); roundRect(-6, -3, 12, 6, 3); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(0, -3, 6, 6); ctx.restore(); }
+    if (pr.from === 'p' && pr.kind !== 'pulse') { drawPlayerProjectile(pr); }
     else if (pr.from === 'p') { const g = ctx.createRadialGradient(pr.x, pr.y, 0, pr.x, pr.y, pr.r * 2.2); g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, pr.color); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(pr.x, pr.y, pr.r * 2.2, 0, 7); ctx.fill(); }
     else { ctx.beginPath(); ctx.arc(pr.x, pr.y, pr.r, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.beginPath(); ctx.arc(pr.x - pr.r * 0.3, pr.y - pr.r * 0.3, pr.r * 0.35, 0, 7); ctx.fill(); }
     ctx.shadowBlur = 0;
   }
+  drawWeaponFx();
   for (const q of G.parts) { ctx.globalAlpha = Math.min(1, q.t * 2); ctx.fillStyle = q.color; ctx.fillRect(q.x - q.r / 2, q.y - q.r / 2, q.r, q.r); }
   ctx.globalAlpha = 1;
   for (const r of G.rings) { ctx.strokeStyle = r.color; ctx.globalAlpha = r.t * 2; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, 7); ctx.stroke(); }

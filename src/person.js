@@ -29,6 +29,24 @@ function drawPerson(x, y, o) {
     ctx.beginPath(); ctx.moveTo(-6.5, -64); ctx.bezierCurveTo(-11.5, -60, -11, -48, -9, -43); ctx.quadraticCurveTo(-4, -41.5, -1.5, -45); ctx.lineTo(-1, -56); ctx.closePath(); ctx.fill();
   }
 
+  if (style === 'bob') {
+    ctx.fillStyle = lg(-9, -66, -2, -50, [[0, shade(hair, 0.05)], [1, shade(hair, -0.18)]]);
+    ctx.beginPath(); ctx.moveTo(-6.5, -64.5); ctx.bezierCurveTo(-11, -61, -10.6, -55, -9.6, -51); ctx.lineTo(-2.2, -50.6); ctx.lineTo(-1, -57); ctx.closePath(); ctx.fill();
+  }
+  if (style === 'afro') {
+    ctx.fillStyle = rg(-1, -64, 2, 14, [[0, shade(hair, 0.1)], [1, shade(hair, -0.2)]]);
+    for (const [cx, cy, r] of [[-6.5, -55.5, 5], [-8, -60.5, 5.6], [-6, -66, 5.6], [0, -68.6, 5.8], [5.8, -67, 5], [-3, -51.5, 3.6]]) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); }
+  }
+  if (style === 'braid') {
+    for (let i = 0; i < 6; i++) {
+      const by = -58 + i * 3.1, bx = -7.6 - i * 0.35;
+      ctx.fillStyle = lg(bx - 2.6, by, bx + 2.6, by, [[0, shade(hair, -0.15)], [0.5, shade(hair, 0.1)], [1, shade(hair, -0.2)]]);
+      ctx.beginPath(); ctx.ellipse(bx + (i % 2 ? 0.7 : -0.7), by, 2.5 - i * 0.12, 2.1, i % 2 ? 0.5 : -0.5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#d34b6a'; ctx.fillRect(-10.4, -40.6, 2.4, 1.3);
+    ctx.fillStyle = shade(hair, -0.05); ctx.beginPath(); ctx.moveTo(-10.2, -39.4); ctx.lineTo(-8, -39.4); ctx.lineTo(-9.6, -36.2); ctx.closePath(); ctx.fill();
+  }
+
   // ---------- back arm ----------
   drawArm(-1, -w * 0.42, o, longSleeve ? (o.coat ? coatCol : top) : top, sk, true, SH);
 
@@ -269,6 +287,31 @@ function drawHead(o, sk, hair, style, female) {
     if (style === 'long') { ctx.beginPath(); ctx.moveTo(-3.6, -60); ctx.bezierCurveTo(-5.2, -54, -4, -50, -2.4, -48.5); ctx.lineTo(-1.2, -49.5); ctx.quadraticCurveTo(-2.4, -54, -1.8, -59.5); ctx.closePath(); ctx.fill(); }
     if (style === 'ponytail') { ctx.beginPath(); ctx.moveTo(-6.2, -63); ctx.bezierCurveTo(-11.5, -62, -12, -54, -9.6, -49.5); ctx.quadraticCurveTo(-8.4, -55, -5.4, -59.5); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#d34b6a'; ctx.beginPath(); ctx.ellipse(-6.6, -61.4, 1, 1.4, 0.5, 0, 7); ctx.fill(); ctx.fillStyle = hg; }
     if (style === 'bun') { ctx.beginPath(); ctx.arc(-5.4, -66, 3.6, 0, 7); ctx.fill(); }
+    if (style === 'bob') { ctx.beginPath(); ctx.moveTo(-3.8, -60.5); ctx.bezierCurveTo(-5.2, -56, -4.8, -53, -3.6, -51.2); ctx.lineTo(-0.6, -51.4); ctx.quadraticCurveTo(-1.8, -55, -1.6, -60); ctx.closePath(); ctx.fill(); }
+    if (style === 'sidepart') {
+      ctx.beginPath(); ctx.moveTo(-3.6, -66.4); ctx.bezierCurveTo(1, -70.6, 7.4, -68.8, 9.2, -63.2); ctx.quadraticCurveTo(5.6, -64.6, 1.6, -64.6); ctx.quadraticCurveTo(-1.5, -64.8, -3.6, -66.4); ctx.fill();
+      ctx.strokeStyle = shade(hair, -0.3); ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(-4.4, -62); ctx.quadraticCurveTo(-4.2, -65.5, -3.2, -67.4); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(-1.5, -67.6); ctx.quadraticCurveTo(3.5, -69.4, 7.6, -65.4); ctx.stroke();
+    }
+    if (style === 'curly' || style === 'afro') {
+      const big = style === 'afro';
+      for (let i = 0; i <= 9; i++) {
+        const ang = Math.PI * (1.05 + i * 0.1), R = big ? 8.6 : 7.4;
+        const cx = 0.6 + Math.cos(ang) * R, cy = -60.4 + Math.sin(ang) * (R + (big ? 1.4 : 0.6));
+        ctx.fillStyle = rg(cx - 0.6, cy - 0.8, 0.2, big ? 3.4 : 2.6, [[0, shade(hair, 0.16)], [1, shade(hair, -0.12)]]);
+        ctx.beginPath(); ctx.arc(cx, cy, big ? 3.2 : 2.5, 0, 7); ctx.fill();
+      }
+      ctx.fillStyle = hg;
+    }
+    if (style === 'spiky') {
+      for (let i = 0; i < 6; i++) {
+        const ang = Math.PI * (1.1 + i * 0.15), bx = 0.8 + Math.cos(ang) * 6.6, by = -60.4 + Math.sin(ang) * 7.6;
+        const tx = 0.8 + Math.cos(ang - 0.08) * 11.4, ty = -60.4 + Math.sin(ang - 0.08) * 11.6;
+        ctx.fillStyle = i % 2 ? shade(hair, 0.08) : hair;
+        ctx.beginPath(); ctx.moveTo(bx - 2.4 * Math.sin(ang), by + 2.4 * Math.cos(ang)); ctx.lineTo(tx, ty); ctx.lineTo(bx + 2.4 * Math.sin(ang), by - 2.4 * Math.cos(ang)); ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = hg;
+    }
     // highlight strands
     ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(-4.5, -63.5); ctx.quadraticCurveTo(0, -67.6, 5, -65); ctx.stroke();
     ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(-2, -61); ctx.quadraticCurveTo(1, -64.5, 5.4, -63.5); ctx.stroke();

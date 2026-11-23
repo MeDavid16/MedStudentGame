@@ -62,7 +62,7 @@ const TitleFX = {
       const d = ENEMIES[t]; const L = Object.assign({}, d.look);
       if (L.top === 'random') L.top = pick(['#c0392b', '#2e86de', '#e67e22', '#8e44ad']);
       L.skin = pick(['#f1c9a5', '#e0ac85', '#c68642', '#8d5524', '#ffdbac']); L.hair = pick(['#2b1b10', '#4a3020', '#8a6a3a', '#111', '#c9b48a', '#777']);
-      L.female = Math.random() < 0.5; L.style = L.female ? pick(['long', 'ponytail', 'bun']) : pick(['short', 'buzz', 'receding']);
+      L.female = Math.random() < 0.5; L.style = pick(HAIR_STYLES[L.female ? 'f' : 'm'])[0];
       L.glasses = Math.random() < 0.25; L.shoe = L.gown ? null : '#1c1f25';
       this.runners.push({ type: t, def: d, x: start - 150 - i * rand(95, 130), look: L, walk: Math.random() * 6, face: 1, a: 1, cured: 0, label: t === 'patient' ? pick(SPECIALTIES[pick(Object.keys(SPECIALTIES))].diseases) : d.name });
     });

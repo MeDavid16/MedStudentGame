@@ -34,7 +34,7 @@ const UI = {
     $('#cr-gender').innerHTML = ['f', 'm'].map(g => `<button class="seg ${c.gender === g ? 'on' : ''}" data-k="gender" data-v="${g}">${g === 'f' ? '♀ Female' : '♂ Male'}</button>`).join('');
     $('#cr-skin').innerHTML = sw(['#ffdbac', '#f1c9a5', '#e0ac85', '#c68642', '#8d5524', '#5c3a1e'], 'skin');
     $('#cr-hair').innerHTML = sw(['#111111', '#2b1b10', '#5a3a20', '#a0703a', '#d9b56a', '#8a8a8a', '#a8322a'], 'hair');
-    $('#cr-style').innerHTML = [['short', 'Short'], ['buzz', 'Buzz'], ['long', 'Long'], ['ponytail', 'Ponytail'], ['bun', 'Bun'], ['receding', 'Receding']].map(([k, l]) => `<button class="seg sm ${c.hs === k ? 'on' : ''}" data-k="hs" data-v="${k}">${l}</button>`).join('');
+    $('#cr-style').innerHTML = HAIR_STYLES[c.gender].map(([k, l]) => `<button class="seg sm ${c.hs === k ? 'on' : ''}" data-k="hs" data-v="${k}">${l}</button>`).join('');
     $('#cr-scrub').innerHTML = sw(['#2a7fa8', '#1f3a6b', '#2b8a5e', '#6a3fa0', '#a83a5a', '#3a4450', '#c46a2a'], 'scrub');
     document.querySelectorAll('#create [data-k]').forEach(b => b.onclick = () => {
       c[b.dataset.k] = b.dataset.v;
@@ -58,6 +58,7 @@ const UI = {
       <li>You earn one talent rank per level. At the level cap (${MAX_LEVEL}) you can complete exactly two of the four trees.</li>
       <li>Attendings will stop and quiz you (they call it "pimping"). Answer right to stun them.</li></ul>
       <p class="muted">You start with ${S.bp} Brain Power, enough for your first talent rank. Press <b>Talents</b>.</p>
+      <div class="weapon-reveal"><div class="muted small">YOUR RANDOM STARTING WEAPON</div><div class="wr-name">${weaponLine(S.weapons[0])}</div><div class="muted small">${WEAPONS[S.weapons[0]].desc} You'll get a second random weapon at level ${MAX_LEVEL}.</div></div>
       <div class="row end"><button class="btn primary" onclick="UI.closeModal()">Let's go</button></div>`);
   },
 
@@ -68,7 +69,8 @@ const UI = {
     this.closeModal();
     this.show('#campus');
     $('#cp-name').textContent = (S.finished ? 'Dr. ' : 'Student Doctor ') + S.name;
-    $('#cp-sub').textContent = `Level ${S.level}${S.level >= MAX_LEVEL ? ' (MAX)' : ''} • ${S.cleared}/${S.order.length} rotations complete`;
+    ensureWeapons();
+    $('#cp-sub').textContent = `Level ${S.level}${S.level >= MAX_LEVEL ? ' (MAX)' : ''} • ${S.cleared}/${S.order.length} rotations complete • ${S.weapons.map(weaponLine).join(' + ')}`;
     $('#cp-money').textContent = '$ ' + fmt(S.money);
     $('#cp-bp').textContent = '🧠 ' + fmt(S.bp);
     $('#cp-xp').style.width = (S.level >= MAX_LEVEL ? 100 : S.xp / xpNeeded(S.level) * 100) + '%';
@@ -218,7 +220,7 @@ const UI = {
       <div class="detail">${detail}</div>
       <div class="bag"><h3>Bag (${S.inv.length}/40) ${S.inv.some(i => i.tier === 0) ? `<button class="btn small" onclick="UI.sellNormals()">Sell all Normal</button>` : ''}</h3><div class="baglist">${inv}</div></div>
       <div class="sheet"><h3>Character sheet</h3>
-        ${row('Level', S.level + (S.level >= MAX_LEVEL ? ' (max)' : ` (${fmt(S.xp)}/${fmt(xpNeeded(S.level))} XP)`))}${row('Max HP', fmt(st.maxHp))}${row('Basic attack damage', fmt(st.baseDmg * st.dmgMult * st.basicMult))}
+        ${row('Level', S.level + (S.level >= MAX_LEVEL ? ' (max)' : ` (${fmt(S.xp)}/${fmt(xpNeeded(S.level))} XP)`))}${row('Max HP', fmt(st.maxHp))}${S.weapons.map((id, i) => row(i ? 'Second weapon' : 'Primary weapon', `${weaponLine(id)}`) + row('&nbsp;&nbsp;Damage per hit / attacks per sec', `${fmt(st.baseDmg * st.dmgMult * st.basicMult * WEAPONS[id].dmg * (WEAPONS[id].kind === 'proj' ? 1 : 1 + 0.2 * st.extraProj))} / ${(WEAPONS[id].rate * st.atkRate / 3).toFixed(1)}`)).join('')}${S.weapons.length < 2 ? row('Second weapon', `Unlocks at level ${MAX_LEVEL}`) : ''}
         ${row('Critical chance', Math.round(st.crit * 100) + '%')}${row('Critical damage', Math.round(st.critDmg * 100) + '%')}${row('Attacks per second', st.atkRate.toFixed(2))}
         ${row('Cooldown reduction', Math.round(st.cdr * 100) + '%')}${row('Damage reduction', Math.round(st.dr * 100) + '%')}${row('Move speed', Math.round(st.move))}
         ${row('Money found', '+' + Math.round((st.moneyMult - 1) * 100) + '%')}${row('HP regen / sec', st.regen.toFixed(1))}${row('Coffee', S.coffee + ' / 5')}
@@ -308,15 +310,15 @@ const UI = {
     const st = calcStats(), g = st.gear;
     const rows = STAT_KEYS.map(k => `<tr><td><b>${STATS[k].name}</b></td><td>${esc(STAT_INFO[k].does)}</td><td class="nowrap">${esc(STATS[k].desc)}</td><td>${esc(STAT_INFO[k].cap)}</td><td class="muted">${esc(STAT_INFO[k].talents)}</td><td class="nowrap"><b>${g[k]}</b>${g[k] ? ' → ' + STAT_INFO[k].effect(g[k]) : ''}</td></tr>`).join('');
     const total = TIERS.reduce((a, t) => a + t.weight, 0);
-    const tiers = TIERS.map(t => `<tr><td><b style="color:${t.color}">${t.name}</b></td><td>${t.weight}%</td><td>×${t.mult} stat strength</td><td>×${t.price} price</td></tr>`).join('');
+    const tiers = TIERS.map(t => `<tr><td><b style="color:${t.color}">${t.name}</b></td><td>${t.weight}%</td><td>${[2, 3, 4, 5][TIERS.indexOf(t)]} stats, ×${t.mult} strength</td><td>×${t.price} price</td></tr>`).join('');
     return `<div class="guide">
-      <h3>Stat key</h3><p class="muted small">Every gear piece rolls 3 random stats. Hover any stat in the game to see this again.</p>
+      <h3>Stat key</h3><p class="muted small">Gear rolls random stats by rarity: Normal 2, Magic 3, Rare 4, Legendary 5. Hover any stat in the game to see this again.</p>
       <div class="tablewrap"><table class="gtable"><thead><tr><th>Stat</th><th>What it does</th><th>Per point</th><th>Cap</th><th>Talents that stack with it</th><th>You have</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="guide-2">
         <div><h3>Item rarity</h3><div class="tablewrap"><table class="gtable"><thead><tr><th>Tier</th><th>Drop chance</th><th>Stats</th><th>Value</th></tr></thead><tbody>${tiers}</tbody></table></div>
           <p class="muted small">Applies to enemy drops and boss rewards. The shop also caps each restock at 1 Legendary, 2 Rare and 2 Magic. The four odds add up to ${total}%, so they're used as relative weights (Normal ≈ ${(73 / total * 100).toFixed(1)}% in practice). Bosses drop 3 items, elites (attorneys) drop gear often, and anyone else has an 8% chance. Higher item levels have larger stat numbers.</p></div>
         <div><h3>Base character values</h3><ul class="tips small">
-          <li>Health: 100 + 12 per level.</li><li>Basic attack: 10 + 2.2 damage per level, 3 attacks per second.</li>
+          <li>Health: 100 + 12 per level.</li><li>Base damage: 10 + 2.2 per level, multiplied by your weapon (10 weapons, one random at the start; a second random weapon at level 30).</li>
           <li>Critical chance 5%, critical damage 150%.</li><li>Move speed 230.</li>
           <li>Talent ranks: 1 per level (max ${MAX_LEVEL}); a full tree costs ${TREE_POINTS} ranks.</li>
           <li>Money buys gear and coffee. Brain Power buys talent ranks.</li></ul></div>
@@ -357,7 +359,7 @@ $('#title-new').onclick = () => {
     UI.modal(`<h2>Start over?</h2><p>This replaces your current character.</p><div class="row end"><button class="btn" onclick="UI.closeModal()">Cancel</button><button class="btn danger" onclick="UI.closeModal();UI.showCreate()">Start new</button></div>`);
   } else UI.showCreate();
 };
-$('#title-continue').onclick = () => { S = loadGame(); if (!S) return; if (!S.shop || !S.shop.length) restockShop(); UI.showCampus(); };
+$('#title-continue').onclick = () => { S = loadGame(); if (!S) return; ensureWeapons(); if (!S.shop || !S.shop.length) restockShop(); saveGame(); UI.showCampus(); };
 $('#cr-go').onclick = () => UI.finishCreate();
 $('#cr-back').onclick = () => document.querySelectorAll('.music-label').forEach(el => el.textContent = Music.on ? '♪ Music: on' : '♪ Music: off');
 UI.showTitle();

@@ -102,7 +102,7 @@ const TREES = [
       { id: 'bioavail',row: 0, name: 'Bioavailability',  max: 3, desc: r => `+${8*r}% basic attack damage` },
       { id: 'spray',   row: 1, name: 'Broad-Spectrum Spray', max: 1, active: true, desc: () => 'ACTIVE: Fire a cone of 9 pills (90% damage each) that poison targets for 3s. 5s cooldown.' },
       { id: 'halflife',row: 1, name: 'Half-Life',        max: 3, desc: r => `Poison deals +${20*r}% damage and lasts longer` },
-      { id: 'loading', row: 2, name: 'Loading Dose',     max: 2, desc: r => `Basic attacks fire ${r} extra projectile${r>1?'s':''}` },
+      { id: 'loading', row: 2, name: 'Loading Dose',     max: 2, desc: r => `Projectile weapons fire ${r} extra shot${r>1?'s':''}; beam, shock, spray and melee weapons deal +${20*r}% damage` },
       { id: 'synergy', row: 2, name: 'Drug Synergy',     max: 2, desc: r => `+${10*r}% damage to poisoned enemies` },
       { id: 'codecart',row: 3, name: 'Code Cart',        max: 1, active: true, desc: () => 'ULTIMATE: Drop a medication cloud at the cursor for 5s that damages and slows enemies. 20s cooldown.' },
     ] },
@@ -295,3 +295,23 @@ const CLASSROOM = { name: 'Medical School', place: 'MS1 Lecture Hall', setting: 
 
 const FIRST_NAMES_F = ['Avery', 'Maya', 'Sofia', 'Priya', 'Chloe', 'Leah', 'Nora', 'Grace'];
 const FIRST_NAMES_M = ['Ethan', 'Noah', 'Daniel', 'Lucas', 'Omar', 'Kenji', 'Mateo', 'Ryan'];
+
+// ---------- PRIMARY WEAPONS (one random at the start; a second random one at max level) ----------
+// rate = attacks/sec, dmg = multiplier on basic damage. kind: proj | beam | melee | chain | cone
+const WEAPONS = {
+  penlight:   { name: 'Diagnostic Penlight',  icon: '🔦', kind: 'beam',  rate: 5.0, dmg: 0.62, range: 520, desc: 'Rapid beams of focused light that hit instantly.' },
+  syringe:    { name: 'Syringe Launcher',     icon: '💉', kind: 'proj',  rate: 2.6, dmg: 1.0, spd: 720, proj: 'syringe', life: 0.95, poison: true, color: '#7fe3ff', desc: 'Fires loaded syringes that leave a lingering toxin.' },
+  hammer:     { name: 'Reflex Hammer',        icon: '🔨', kind: 'melee', rate: 2.0, dmg: 1.9, range: 118, arc: 1.9, desc: 'Heavy close-range swings that knock enemies back.' },
+  scalpel:    { name: 'Scalpel Throwers',     icon: '🔪', kind: 'proj',  rate: 3.0, dmg: 0.95, spd: 840, proj: 'scalpel', life: 0.8, pierce: 1, color: '#e8eef5', desc: 'Spinning scalpels that slice through two targets.' },
+  defib:      { name: 'Defibrillator Paddles', icon: '⚡', kind: 'chain', rate: 1.4, dmg: 2.0, range: 430, chains: 2, desc: 'Electric shocks that arc between up to three enemies.' },
+  stapler:    { name: 'Surgical Stapler',     icon: '📎', kind: 'proj',  rate: 7.0, dmg: 0.45, spd: 940, proj: 'staple', life: 0.7, spread: 0.09, color: '#d5dde6', desc: 'A rapid stream of steel surgical staples.' },
+  cryo:       { name: 'Cryo Spray',           icon: '❄️', kind: 'cone',  rate: 6.5, dmg: 0.5, range: 235, arc: 0.75, desc: 'A liquid-nitrogen cone that slows everything it touches.' },
+  pills:      { name: 'Pill Bottle Blaster',  icon: '💊', kind: 'proj',  rate: 1.3, dmg: 0.55, spd: 660, proj: 'pill', life: 0.55, count: 6, spread: 0.5, color: '#ff7ad9', desc: 'A shotgun burst of six tumbling pills.' },
+  ultrasound: { name: 'Ultrasound Wand',      icon: '〰️', kind: 'proj',  rate: 1.6, dmg: 1.6, spd: 540, proj: 'wave', life: 0.62, pierce: 99, r: 18, color: '#9fd0ff', desc: 'Sound-wave arcs that pass through every enemy in a line.' },
+  castsaw:    { name: 'Cast Saw',             icon: '⚙️', kind: 'proj',  rate: 1.1, dmg: 1.3, spd: 640, proj: 'saw', life: 1.25, pierce: 99, r: 14, boomerang: true, color: '#ffd08a', desc: 'An oscillating saw blade that flies out and returns.' },
+};
+const WEAPON_KEYS = Object.keys(WEAPONS);
+const HAIR_STYLES = {
+  m: [['short', 'Short'], ['buzz', 'Buzz'], ['receding', 'Receding'], ['sidepart', 'Side Part'], ['curly', 'Curly Top'], ['spiky', 'Spiky']],
+  f: [['ponytail', 'Ponytail'], ['long', 'Long'], ['bun', 'Bun'], ['bob', 'Bob'], ['braid', 'Braid'], ['afro', 'Curly']],
+};
