@@ -7,9 +7,9 @@ A browser action RPG about a medical student fighting their way from the lecture
 ## Features
 - Male or female student doctor with customizable skin tone, hair color, scrubs and 6 hair styles per gender
 - 10 primary weapons (penlight, syringe launcher, reflex hammer, scalpels, defibrillator, surgical stapler, cryo spray, pill blaster, ultrasound wand, cast saw); one is chosen at random each playthrough, and a second random weapon unlocks at max level
-- Real-time action combat against patients (labeled with their disease), nurses, family members, pharmacists, lab and radiology techs, phlebotomists, executives, insurance reviewers, malpractice attorneys and more
+- Real-time action combat against patients (labeled with their disease), nurses, pharmacists, lab and radiology techs, phlebotomists, executives, insurance reviewers, malpractice attorneys and more
 - 15 stages: MS1 Lecture Hall → Pediatrics → Psychiatry → Family Medicine → 10 randomized specialties → Neurosurgery (final boss)
-- 2 waves of patients and staff per rotation, then an attending boss with unique attack patterns who stops mid-fight to "pimp" you with board-style questions (~170 high-yield questions; repeats are avoided until a specialty's bank is used up)
+- 2 waves of patients and staff per rotation (3 for the Neurosurgery finale), then an attending boss with unique attack patterns who stops mid-fight to "pimp" you with board-style questions (~170 high-yield questions; repeats are avoided until a specialty's bank is used up)
 - Two currencies: **Money** (gear and coffee) and **Brain Power** (talents and skills)
 - 4 talent trees (Diagnostician, Surgeon, Bedside Manner, Pharmacology), each with 15 ranks and 2 active skills; the level-30 cap lets you complete exactly 2 trees
 - 8 gear slots (Head, Shirt, Pants, Shoes, Stethoscope, Wrist, Left Ring, Right Ring); items roll random stats by rarity (Normal 2, Magic 3, Rare 4, Legendary 5)

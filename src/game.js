@@ -292,7 +292,7 @@ function startZone(idx) {
     floor: buildFloor(Z.setting, Z.accent), props: placeProps(Z.setting),
     player: { x: WW / 2, y: WH / 2 + 40, r: 14, hp: stats.maxHp, atkT: 0, face: 1, walk: 0, iframe: 0, rootT: 0, slowT: 0, dash: null, spin: 0, spinTick: 0, shield: 0, cds: [0, 0, 0, 0], moving: false },
     stats, enemies: [], projs: [], hazards: [], pickups: [], floaters: [], parts: [], rings: [],
-    waves: [10 + Math.floor(idx * 1.3), 13 + Math.floor(idx * 1.4)], wave: 0, queue: [], spawnT: 0, waveDelay: 1.5,
+    waves: [10 + idx * 1.3, 13 + idx * 1.4].concat(Z.final ? [16 + idx * 1.5] : []).map(n => Math.round(n * 1.2)), wave: 0, queue: [], spawnT: 0, waveDelay: 1.5,
     beams: [], bolts: [], swings: [], mist: [], flashes: [], sparks: [], wcd: {},
     boss: null, bossSpawned: false, qIdx: 0, shake: 0, banner: { text: Z.place, sub: Z.boss ? `${Z.name} rotation` : 'Orientation week', t: 3.5 },
     earned: { money: 0, bp: 0, xp: 0, items: [] }, cam: { x: WW / 2, y: WH / 2 },
@@ -304,7 +304,7 @@ function queueWave() {
   const n = G.waves[G.wave];
   G.queue = [];
   for (let i = 0; i < n; i++) G.queue.push(pick(G.zone.staff));
-  if (G.wave === 1 && G.idx >= 3) G.queue.push('lawyer');
+  if (G.wave === G.waves.length - 1 && G.idx >= 3) G.queue.push('lawyer');
   if (G.wave === 0 && G.idx >= 5) G.queue.push(pick(['exec', 'insurance', 'lawyer']));
   G.spawnT = 0;
 }

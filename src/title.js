@@ -55,7 +55,7 @@ const TitleFX = {
   newChase(first) {
     const look = this.playerLookForTitle();
     look.top = look.top || '#2a7fa8';
-    const types = shuffle(['nurse', 'lawyer', 'family', 'patient', 'exec', 'phleb', 'pharmacist', 'radtech', 'insurance', 'transporter', 'patient']).slice(0, 5);
+    const types = shuffle(['nurse', 'lawyer', 'casemgr', 'patient', 'exec', 'phleb', 'pharmacist', 'radtech', 'insurance', 'transporter', 'patient']).slice(0, 5);
     const start = first ? -80 : -120;
     this.runners = [{ me: true, x: start, look, spd: 0, walk: 0, face: 1, a: 1 }];
     types.forEach((t, i) => {

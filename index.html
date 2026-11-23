@@ -243,7 +243,7 @@ p { line-height: 1.5; margin: 8px 0; }
       <button class="btn primary big hidden glowpulse" id="title-continue">Continue</button>
       <button class="btn big" id="title-new">New student doctor</button>
     </div>
-    <a class="btn donate" href="https://paypal.me/medavid16" target="_blank" rel="noopener noreferrer">♥ Support the developer — Donate via PayPal</a>
+    <a class="btn donate" href="https://paypal.me/medavid16" target="_blank" rel="noopener noreferrer">Donate to Developer</a>
     <p class="muted small donate-url">paypal.me/medavid16</p>
     <p class="muted small">Saves in this browser. Best with keyboard and mouse; touch controls included.</p>
   </div>
@@ -441,7 +441,7 @@ const ENEMIES = {
 const SPECIALTIES = {
   peds: { name: 'Pediatrics', boss: 'Dr. Rosa Alvarez', setting: 'clinic', place: "Children's Clinic", accent: '#ffb347',
     diseases: ['Croup', 'RSV Bronchiolitis', 'Acute Otitis Media', 'Hand-Foot-Mouth', 'Strep Pharyngitis', 'Gastroenteritis'],
-    staff: ['patient', 'patient', 'family', 'ma', 'nurse', 'phleb'],
+    staff: ['patient', 'patient', 'ma', 'nurse', 'phleb'],
     attacks: { ring: 'Vaccine Schedule', volley: 'Growth Chart Volley', summon: 'Toddler Tantrum', zones: 'Sticker Reward' },
     q: [
       { q: 'Most common cause of bronchiolitis in infants?', a: ['Respiratory syncytial virus', 'Influenza A', 'Haemophilus influenzae type b', 'Mycoplasma pneumoniae'], why: 'RSV is the leading cause of bronchiolitis in infants.' },
@@ -451,7 +451,7 @@ const SPECIALTIES = {
     ] },
   psych: { name: 'Psychiatry', boss: 'Dr. Malcolm Reyes', setting: 'clinic', place: 'Behavioral Health Unit', accent: '#9fa8ff',
     diseases: ['Delirium', 'Alcohol Withdrawal', 'Panic Attack', 'Serotonin Syndrome', 'Lithium Toxicity', 'Catatonia'],
-    staff: ['patient', 'patient', 'nurse', 'family', 'pharmacist', 'casemgr'],
+    staff: ['patient', 'patient', 'nurse', 'pharmacist', 'casemgr'],
     attacks: { ring: 'Mental Status Exam', spiral: 'Flight of Ideas', summon: 'Group Therapy', volley: 'Free Association' },
     q: [
       { q: 'Clozapine requires regular monitoring of:', a: ['Absolute neutrophil count', 'Serum amylase', 'Vitamin B12', 'Urine osmolality'], why: 'Clozapine can cause agranulocytosis, so the ANC is monitored.' },
@@ -461,7 +461,7 @@ const SPECIALTIES = {
     ] },
   fm: { name: 'Family Medicine', boss: 'Dr. Linda Park', setting: 'clinic', place: 'Family Health Center', accent: '#6fd18f',
     diseases: ['Hypertension', 'Type 2 Diabetes', 'COPD Exacerbation', 'Low Back Pain', 'Acute Sinusitis', 'Gout Flare'],
-    staff: ['patient', 'patient', 'ma', 'family', 'insurance', 'pharmacist', 'clerk'],
+    staff: ['patient', 'patient', 'ma', 'insurance', 'pharmacist', 'clerk'],
     attacks: { ring: 'Preventive Screening', volley: 'Fifteen-Minute Visit', zones: 'Annual Wellness Check', summon: 'Walk-In Rush', dash: 'Continuity of Care' },
     q: [
       { q: 'Per USPSTF, average-risk colorectal cancer screening begins at age:', a: ['45', '40', '50', '55'], why: 'USPSTF lowered the starting age to 45 in 2021.' },
@@ -471,7 +471,7 @@ const SPECIALTIES = {
     ] },
   ent: { name: 'Otolaryngology (ENT)', boss: 'Dr. Arjun Mehta', setting: 'hospital', place: 'ENT Clinic & OR', accent: '#ffd36b',
     diseases: ['Epistaxis', 'Peritonsillar Abscess', 'Otitis Externa', 'BPPV', 'Chronic Sinusitis'],
-    staff: ['patient', 'patient', 'nurse', 'radtech', 'family', 'clerk'],
+    staff: ['patient', 'patient', 'nurse', 'radtech', 'clerk'],
     attacks: { ring: 'Weber & Rinne', volley: 'Nasal Packing', zones: 'Tympanometry', spiral: 'Vertigo Spin' },
     q: [
       { q: 'Most common site of anterior epistaxis?', a: ["Kiesselbach's plexus", 'Sphenopalatine artery', 'Inferior turbinate', 'Posterior ethmoid artery'], why: "Kiesselbach's plexus on the anterior septum causes ~90% of nosebleeds." },
@@ -481,7 +481,7 @@ const SPECIALTIES = {
     ] },
   obgyn: { name: 'Obstetrics & Gynecology', boss: 'Dr. Grace Okafor', setting: 'hospital', place: 'Labor & Delivery', accent: '#ff8fc8',
     diseases: ['Preeclampsia', 'Hyperemesis Gravidarum', 'Ectopic Pregnancy', 'PCOS', 'Gestational Diabetes'],
-    staff: ['patient', 'patient', 'nurse', 'family', 'family', 'labtech', 'lawyer'],
+    staff: ['patient', 'patient', 'nurse', 'labtech', 'lawyer'],
     attacks: { ring: 'Contraction Wave', volley: 'Fundal Height', summon: 'Family Waiting Room', zones: 'Fetal Monitoring' },
     q: [
       { q: 'First-line agent for seizure prophylaxis in preeclampsia with severe features?', a: ['Magnesium sulfate', 'Phenytoin', 'Lorazepam', 'Levetiracetam'], why: 'Magnesium sulfate prevents and treats eclamptic seizures.' },
@@ -491,7 +491,7 @@ const SPECIALTIES = {
     ] },
   cards: { name: 'Cardiology', boss: 'Dr. Henry Castellano', setting: 'hospital', place: 'Cardiac Cath Lab', accent: '#ff5d6c',
     diseases: ['Atrial Fibrillation', 'STEMI', 'CHF Exacerbation', 'Pericarditis', 'Aortic Stenosis'],
-    staff: ['patient', 'patient', 'nurse', 'radtech', 'pharmacist', 'exec', 'family'],
+    staff: ['patient', 'patient', 'nurse', 'radtech', 'pharmacist', 'exec'],
     attacks: { ring: 'Twelve-Lead Burst', spiral: 'Torsades Spiral', dash: 'Door-to-Balloon', volley: 'Ejection Fraction' },
     q: [
       { q: 'ST elevation in leads II, III and aVF indicates which MI territory?', a: ['Inferior', 'Anterior', 'Lateral', 'Posterior only'], why: 'II, III, aVF look at the inferior wall (usually the RCA).' },
@@ -501,7 +501,7 @@ const SPECIALTIES = {
     ] },
   em: { name: 'Emergency Medicine', boss: 'Dr. Tasha Brooks', setting: 'hospital', place: 'Emergency Department', accent: '#ff7a3d',
     diseases: ['Anaphylaxis', 'Opioid Overdose', 'DKA', 'Sepsis', 'Acetaminophen Overdose'],
-    staff: ['patient', 'patient', 'patient', 'nurse', 'transporter', 'family', 'rt', 'lawyer'],
+    staff: ['patient', 'patient', 'patient', 'nurse', 'transporter', 'rt', 'lawyer'],
     attacks: { ring: 'Mass Casualty', dash: 'Trauma Activation', summon: 'Waiting Room Surge', zones: 'Triage Zones', volley: 'Rapid Sequence' },
     q: [
       { q: 'Antidote for acetaminophen overdose?', a: ['N-acetylcysteine', 'Flumazenil', 'Fomepizole', 'Deferoxamine'], why: 'NAC replenishes glutathione; best within 8 hours of ingestion.' },
@@ -561,7 +561,7 @@ const SPECIALTIES = {
     ] },
   im: { name: 'Internal Medicine', boss: 'Dr. Eleanor Whitfield', setting: 'hospital', place: 'Medicine Wards', accent: '#7fb2ff',
     diseases: ['Pneumonia', 'Hyperkalemia', 'Thyroid Storm', 'Acute Kidney Injury', 'Upper GI Bleed'],
-    staff: ['patient', 'patient', 'nurse', 'pharmacist', 'casemgr', 'family', 'labtech', 'exec'],
+    staff: ['patient', 'patient', 'nurse', 'pharmacist', 'casemgr', 'labtech', 'exec'],
     attacks: { ring: 'Morning Rounds', volley: 'Admission Orders', summon: 'Overnight Admits', spiral: 'Differential Spiral', zones: 'Problem List' },
     q: [
       { q: 'Hyperkalemia with peaked T waves — the first drug to give?', a: ['IV calcium gluconate', 'Sodium polystyrene sulfonate', 'Furosemide', 'Oral potassium binder only'], why: 'Calcium stabilizes the cardiac membrane; insulin/glucose then shift K⁺.' },
@@ -571,7 +571,7 @@ const SPECIALTIES = {
     ] },
   neuro: { name: 'Neurosurgery', boss: 'Dr. Adrian Voss', setting: 'or', place: 'Neurosurgical OR', accent: '#c084fc', final: true,
     diseases: ['Epidural Hematoma', 'Subdural Hematoma', 'Subarachnoid Hemorrhage', 'Hydrocephalus', 'Cauda Equina', 'Glioblastoma'],
-    staff: ['patient', 'nurse', 'radtech', 'lawyer', 'exec', 'resident', 'family'],
+    staff: ['patient', 'nurse', 'radtech', 'lawyer', 'exec', 'resident'],
     attacks: { ring: 'Craniotomy', spiral: 'Stereotactic Spiral', dash: 'Burr Hole Rush', zones: 'Gamma Knife', summon: 'Neuro ICU Team', volley: 'Glasgow Barrage' },
     q: [
       { q: 'Lucid interval with a biconvex (lens-shaped) hematoma on CT:', a: ['Epidural hematoma', 'Subdural hematoma', 'Subarachnoid hemorrhage', 'Intraparenchymal hemorrhage'], why: 'Usually middle meningeal artery injury; does not cross suture lines.' },
@@ -1055,7 +1055,7 @@ function startZone(idx) {
     floor: buildFloor(Z.setting, Z.accent), props: placeProps(Z.setting),
     player: { x: WW / 2, y: WH / 2 + 40, r: 14, hp: stats.maxHp, atkT: 0, face: 1, walk: 0, iframe: 0, rootT: 0, slowT: 0, dash: null, spin: 0, spinTick: 0, shield: 0, cds: [0, 0, 0, 0], moving: false },
     stats, enemies: [], projs: [], hazards: [], pickups: [], floaters: [], parts: [], rings: [],
-    waves: [10 + Math.floor(idx * 1.3), 13 + Math.floor(idx * 1.4)], wave: 0, queue: [], spawnT: 0, waveDelay: 1.5,
+    waves: [10 + idx * 1.3, 13 + idx * 1.4].concat(Z.final ? [16 + idx * 1.5] : []).map(n => Math.round(n * 1.2)), wave: 0, queue: [], spawnT: 0, waveDelay: 1.5,
     beams: [], bolts: [], swings: [], mist: [], flashes: [], sparks: [], wcd: {},
     boss: null, bossSpawned: false, qIdx: 0, shake: 0, banner: { text: Z.place, sub: Z.boss ? `${Z.name} rotation` : 'Orientation week', t: 3.5 },
     earned: { money: 0, bp: 0, xp: 0, items: [] }, cam: { x: WW / 2, y: WH / 2 },
@@ -1067,7 +1067,7 @@ function queueWave() {
   const n = G.waves[G.wave];
   G.queue = [];
   for (let i = 0; i < n; i++) G.queue.push(pick(G.zone.staff));
-  if (G.wave === 1 && G.idx >= 3) G.queue.push('lawyer');
+  if (G.wave === G.waves.length - 1 && G.idx >= 3) G.queue.push('lawyer');
   if (G.wave === 0 && G.idx >= 5) G.queue.push(pick(['exec', 'insurance', 'lawyer']));
   G.spawnT = 0;
 }
@@ -2765,7 +2765,7 @@ const TitleFX = {
   newChase(first) {
     const look = this.playerLookForTitle();
     look.top = look.top || '#2a7fa8';
-    const types = shuffle(['nurse', 'lawyer', 'family', 'patient', 'exec', 'phleb', 'pharmacist', 'radtech', 'insurance', 'transporter', 'patient']).slice(0, 5);
+    const types = shuffle(['nurse', 'lawyer', 'casemgr', 'patient', 'exec', 'phleb', 'pharmacist', 'radtech', 'insurance', 'transporter', 'patient']).slice(0, 5);
     const start = first ? -80 : -120;
     this.runners = [{ me: true, x: start, look, spd: 0, walk: 0, face: 1, a: 1 }];
     types.forEach((t, i) => {
