@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Residency — The Long Call</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>/*CSS*/</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<section id="title" class="screen hidden-scroll">
+  <canvas id="title-bg"></canvas>
+  <div class="title-card">
+    <div class="eyebrow">A medical-school action RPG</div>
+    <h1 class="logo">RESIDENCY</h1>
+    <div class="tag"><span class="tag-line"></span>The Long Call<span class="tag-line"></span></div>
+    <div id="title-ticker"></div>
+    <p class="lede">Fight your way from the lecture hall through clinics and hospital wards. Out-think diseases, survive the staff, and get past fourteen attendings to become a doctor.</p>
+    <div class="col narrow">
+      <button class="btn primary big hidden glowpulse" id="title-continue">Continue</button>
+      <button class="btn big" id="title-new">New student doctor</button>
+    </div>
+    <a class="btn donate" href="https://paypal.me/medavid16" target="_blank" rel="noopener noreferrer">♥ Support the developer — Donate via PayPal</a>
+    <p class="muted small donate-url">paypal.me/medavid16</p>
+    <p class="muted small">Saves in this browser. Best with keyboard and mouse; touch controls included.</p>
+  </div>
+</section>
+
+<section id="create" class="screen center hidden">
+  <div class="create-card">
+    <h2>Create your student doctor</h2>
+    <div class="create-grid">
+      <canvas id="cr-preview" width="200" height="260"></canvas>
+      <div class="create-form">
+        <label>Name<input id="cr-name" maxlength="22" autocomplete="off"></label>
+        <label>Student</label><div id="cr-gender" class="segs"></div>
+        <label>Skin tone</label><div id="cr-skin" class="swatches"></div>
+        <label>Hair style</label><div id="cr-style" class="segs wrap"></div>
+        <label>Hair color</label><div id="cr-hair" class="swatches"></div>
+        <label>Scrubs</label><div id="cr-scrub" class="swatches"></div>
+      </div>
+    </div>
+    <div class="row end"><button class="btn" id="cr-back">Back</button><button class="btn primary" id="cr-go">Start medical school</button></div>
+  </div>
+</section>
+
+<section id="campus" class="screen hidden">
+  <header class="campus-top">
+    <canvas id="cp-avatar" width="70" height="90"></canvas>
+    <div class="who"><div id="cp-name" class="h"></div><div id="cp-sub" class="muted small"></div><div class="xpbar"><div id="cp-xp"></div></div></div>
+    <div class="grow"></div>
+    <div class="curs"><span id="cp-money" class="gold"></span><span id="cp-bp" class="bp"></span></div>
+  </header>
+  <div class="campus-actions">
+    <button class="btn primary" id="btn-next">▶ Next rotation</button>
+    <button class="btn" id="btn-gear">Character & Gear</button>
+    <button class="btn" id="btn-talents">Talents</button>
+    <button class="btn" id="btn-shop">Shop</button>
+    <span class="grow"></span>
+    <button class="btn" id="btn-menu">Title screen</button>
+  </div>
+  <h3 class="map-h">Your path to becoming a doctor</h3>
+  <div id="map"></div>
+  <div class="legend muted small">Classroom → Clinics (Pediatrics, Psychiatry, Family Medicine) → Hospital rotations in a random order → Neurosurgery. Cleared rotations can be replayed for money, Brain Power and gear.</div>
+</section>
+
+<div id="hud-layer" class="hidden"></div>
+<section id="panel" class="hidden"><div class="panel-card"><div id="panel-tabs" class="tabs"></div><div id="panel-body"></div></div></section>
+<div id="modal" class="hidden"></div>
+<button class="btn small music-btn music-label" id="music-btn" onclick="Music.start();Music.toggle()">♪ Music: on</button>
+
+<script>/*JS*/</script>
+</body>
+</html>
