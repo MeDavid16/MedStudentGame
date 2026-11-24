@@ -90,3 +90,12 @@ const SeenQ = {
   mark(key) { const m = this.get(); m[key] = 1; try { localStorage.setItem(SEENQ_KEY, JSON.stringify(m)); } catch (e) {} },
   clear(keys) { const m = this.get(); for (const k of keys) delete m[k]; try { localStorage.setItem(SEENQ_KEY, JSON.stringify(m)); } catch (e) {} },
 };
+
+// ---------- one-time wipe requested by the developer: clears every saved slot and local score ----------
+const RESET_EPOCH = '1';
+try {
+  if (localStorage.getItem('residency_reset_epoch') !== RESET_EPOCH) {
+    for (const k of [SLOTS_KEY, BOARD_KEY, SEENQ_KEY, 'residency_save_v1']) localStorage.removeItem(k);
+    localStorage.setItem('residency_reset_epoch', RESET_EPOCH);
+  }
+} catch (e) { /* storage unavailable */ }
