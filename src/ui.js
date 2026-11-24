@@ -13,11 +13,33 @@ const UI = {
   // ---------- TITLE ----------
   showTitle() {
     if (G) G.running = false;
-    const sv = loadGame();
+    const sv = loadGame(), n = Saves.list().length;
     $('#title-continue').classList.toggle('hidden', !sv);
     if (sv) $('#title-continue').textContent = `Continue — ${sv.name} (Lv ${sv.level})`;
+    $('#title-load').classList.toggle('hidden', n < 1);
+    $('#title-load').textContent = `Load saved game (${n})`;
+    this.renderBoard();
     this.show('#title');
     TitleFX.start();
+  },
+
+  renderBoard() {
+    const el = $('#board'); if (!el) return;
+    const rows = Board.top(5);
+    el.innerHTML = `<div class="board-h">🏆 Leaderboard — Top 5 <small>${Board.label()}</small></div>` + (rows.length ? rows.map((r, i) => `<div class="brow r${i + 1}"><span class="rk">${i + 1}</span><span class="nm">${r.finished ? 'Dr. ' : ''}${esc(r.name)}</span><span class="lv">Lv ${r.level | 0} · ${r.cleared | 0}/15</span><span class="sc">${fmt(r.score)}</span></div>`).join('')
+      : '<div class="board-empty">No scores yet. Clear rotations, answer attendings correctly and treat patients to get on the board.</div>');
+  },
+  showSaves() {
+    const list = Saves.list();
+    const rows = list.map(s => `<div class="slotrow"><canvas width="44" height="56" data-id="${s.id}"></canvas><div class="info"><b>${s.finished ? 'Dr. ' : ''}${esc(s.name)}</b><span>Level ${s.level} · ${s.cleared}/15 rotations · Score ${fmt(scoreOf(s))}${s.savedAt ? ' · ' + new Date(s.savedAt).toLocaleDateString() : ''}</span></div>
+      <button class="btn small primary" onclick="UI.loadSlot('${s.id}')">Load</button><button class="btn small danger" onclick="UI.confirmDelete('${s.id}')">Delete</button></div>`).join('') || '<p class="muted">No saved games yet.</p>';
+    this.modal(`<h2>Saved games</h2><p class="muted small">Each student doctor saves under their own name in this browser.</p><div class="slotlist">${rows}</div><div class="row end"><button class="btn" onclick="UI.closeModal()">Close</button></div>`);
+    document.querySelectorAll('.slotrow canvas').forEach(cv => { const s = Saves.get(cv.dataset.id); if (s) { const old = S; S = s; try { previewChar(cv, playerLook()); } finally { S = old; } } });
+  },
+  loadSlot(id) { S = Saves.get(id); if (!S) return; ensureWeapons(); if (!S.shop || !S.shop.length) restockShop(); saveGame(); this.closeModal(); this.showCampus(); },
+  confirmDelete(id) {
+    const s = Saves.get(id); if (!s) return;
+    this.modal(`<h2>Delete ${esc(s.name)}?</h2><p>This permanently removes this saved game from this browser. Their best score stays on the leaderboard.</p><div class="row end"><button class="btn" onclick="UI.showSaves()">Cancel</button><button class="btn danger" onclick="Saves.remove('${id}');UI.showTitle();UI.showSaves()">Delete</button></div>`);
   },
 
   // ---------- CREATE ----------
@@ -45,6 +67,11 @@ const UI = {
   },
   finishCreate() {
     const name = ($('#cr-name').value || '').trim().slice(0, 22) || 'Student Doctor';
+    if (Saves.nameTaken(name)) {
+      $('#cr-err').textContent = `A saved game named "${name}" already exists. Choose a different name, or load that save from the title screen.`;
+      $('#cr-name').focus(); return;
+    }
+    $('#cr-err').textContent = '';
     const c = this.cr;
     S = newSave(name, c.gender, c.skin, c.scrub, c.hair); S.hairStyle = c.hs;
     S.equip.shirt = genItem('shirt', 1, 0); S.equip.shirt.name = 'Student Scrub Top'; S.equip.shirt.base = 'Student Scrub Top';
@@ -70,7 +97,7 @@ const UI = {
     this.show('#campus');
     $('#cp-name').textContent = (S.finished ? 'Dr. ' : 'Student Doctor ') + S.name;
     ensureWeapons();
-    $('#cp-sub').textContent = `Level ${S.level}${S.level >= MAX_LEVEL ? ' (MAX)' : ''} • ${S.cleared}/${S.order.length} rotations complete • ${S.weapons.map(weaponLine).join(' + ')}`;
+    $('#cp-sub').textContent = `Level ${S.level}${S.level >= MAX_LEVEL ? ' (MAX)' : ''} • ${S.cleared}/${S.order.length} rotations complete • Score ${fmt(scoreOf(S))} • ${S.weapons.map(weaponLine).join(' + ')}`;
     $('#cp-money').textContent = '$ ' + fmt(S.money);
     $('#cp-bp').textContent = '🧠 ' + fmt(S.bp);
     $('#cp-xp').style.width = (S.level >= MAX_LEVEL ? 100 : S.xp / xpNeeded(S.level) * 100) + '%';
@@ -354,15 +381,11 @@ function drawTitleArt() {
 
 // wire static buttons
 window.addEventListener('DOMContentLoaded', () => {});
-$('#title-new').onclick = () => {
-  if (loadGame()) {
-    UI.modal(`<h2>Start over?</h2><p>This replaces your current character.</p><div class="row end"><button class="btn" onclick="UI.closeModal()">Cancel</button><button class="btn danger" onclick="UI.closeModal();UI.showCreate()">Start new</button></div>`);
-  } else UI.showCreate();
-};
+$('#title-new').onclick = () => UI.showCreate();
+$('#title-load').onclick = () => UI.showSaves();
 $('#title-continue').onclick = () => { S = loadGame(); if (!S) return; ensureWeapons(); if (!S.shop || !S.shop.length) restockShop(); saveGame(); UI.showCampus(); };
 $('#cr-go').onclick = () => UI.finishCreate();
-$('#cr-back').onclick = () => document.querySelectorAll('.music-label').forEach(el => el.textContent = Music.on ? '♪ Music: on' : '♪ Music: off');
-UI.showTitle();
+$('#cr-back').onclick = () => UI.showTitle();
 $('#btn-gear').onclick = () => UI.openPanel('gear');
 $('#btn-talents').onclick = () => UI.openPanel('talents');
 $('#btn-shop').onclick = () => UI.openPanel('shop');
@@ -376,3 +399,4 @@ window.addEventListener('keydown', e => {
 }, true);
 document.querySelectorAll('.music-label').forEach(el => el.textContent = Music.on ? '♪ Music: on' : '♪ Music: off');
 UI.showTitle();
+Board.init();

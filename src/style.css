@@ -218,3 +218,24 @@ p { line-height: 1.5; margin: 8px 0; }
 
 .weapon-reveal { margin-top: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid #3a5170; background: linear-gradient(160deg, #18304a, #121a24); }
 .wr-name { font-size: 20px; font-weight: 900; margin: 4px 0; color: #ffe08a; }
+
+.intro2 { display: flex; flex-direction: column; gap: 4px; font-size: 16px; max-width: 560px; }
+.intro2 span:first-child { color: #e8f3fb; font-weight: 600; }
+.intro2 span:last-child { color: #8fd9e6; font-style: italic; letter-spacing: .02em; }
+.board { margin: 14px auto 6px; width: min(380px, 92vw); background: rgba(12,20,30,.82); border: 1px solid #2a3d55; border-radius: 14px; padding: 10px 12px; backdrop-filter: blur(4px); text-align: left; animation: fadeup .8s 1.2s both; }
+.board-h { display: flex; align-items: baseline; justify-content: space-between; font-weight: 900; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #ffd54a; margin-bottom: 6px; }
+.board-h small { color: #8fa0b5; font-weight: 700; letter-spacing: .04em; text-transform: none; }
+.brow { display: grid; grid-template-columns: 26px 1fr auto auto; gap: 8px; align-items: center; padding: 5px 4px; border-top: 1px dashed #24324a; font-size: 13px; }
+.brow:first-of-type { border-top: 0; }
+.brow .rk { font-weight: 900; color: #8fa0b5; text-align: center; }
+.brow.r1 .rk { color: #ffd54a; } .brow.r2 .rk { color: #d0d7e1; } .brow.r3 .rk { color: #e0a070; }
+.brow .nm { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brow .lv { color: #8fa0b5; font-size: 11px; } .brow .sc { font-weight: 900; color: #8fd9e6; font-variant-numeric: tabular-nums; }
+.board-empty { color: #8fa0b5; font-size: 13px; padding: 6px 2px; }
+.slotlist { display: flex; flex-direction: column; gap: 8px; max-height: 56vh; overflow: auto; margin-top: 10px; }
+.slotrow { display: flex; align-items: center; gap: 12px; background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+.slotrow canvas { width: 44px; height: 56px; flex: none; }
+.slotrow .info { flex: 1; min-width: 0; }
+.slotrow .info b { display: block; font-size: 15px; }
+.slotrow .info span { font-size: 12px; color: var(--muted); }
+.err { color: #ff8a8a; font-size: 13px; margin-top: 6px; }

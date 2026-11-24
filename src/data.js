@@ -138,6 +138,12 @@ const ENEMIES = {
   rt:          { name: 'Respiratory Therapist', hp: 32, spd: 85,  dmg: 7,  beh: 'ranged', range: 260, rate: 1.6, proj: { name: 'Nebulizer Mist', color: '#c8f0ff', spd: 260, r: 9 }, look: { top: '#3c7a5a', bottom: '#3c7a5a' }, xp: 12, cash: 4, cured: 'Airway secured ✓' },
   transporter: { name: 'Patient Transporter',   hp: 40, spd: 80,  dmg: 12, beh: 'charger', look: { top: '#6b7280', bottom: '#2a2f3a' }, xp: 13, cash: 4, cured: 'Transport done ✓', attack: 'Gurney Rush' },
   clerk:       { name: 'Unit Clerk',            hp: 28, spd: 80,  dmg: 5,  beh: 'ranged', range: 280, rate: 1.5, proj: { name: 'Missing Signature', color: '#ffffff', spd: 340, r: 5 }, look: { top: '#8a5a8f', bottom: '#2a2f3a' }, xp: 10, cash: 4, cured: 'Chart signed ✓' },
+  // ----- newer staff with unique skills -----
+  security:    { name: 'Security Officer',      hp: 95, spd: 72,  dmg: 16, beh: 'slammer', look: { top: '#1d2433', bottom: '#1d2433', head: 'guardcap', badgeGold: true }, xp: 18, cash: 7, cured: 'All clear ✓', attack: 'Code Gray!' },
+  dietitian:   { name: 'Dietitian',             hp: 34, spd: 85,  dmg: 6,  beh: 'ranged', range: 300, rate: 2.6, proj: { name: 'NPO Order', color: '#ff6b81', spd: 320, r: 8, silence: 2.5 }, look: { top: '#a7d8b8', bottom: '#3a4450', coat: true }, xp: 14, cash: 5, cured: 'Diet advanced ✓' },
+  pt:          { name: 'Physical Therapist',    hp: 42, spd: 95,  dmg: 7,  beh: 'ranged', range: 330, rate: 3.0, proj: { name: 'Gait Belt', color: '#f5d76e', spd: 420, r: 7, pull: 150 }, look: { top: '#24456e', bottom: '#c8b48a' }, xp: 14, cash: 5, cured: 'Ambulating ✓' },
+  infection:   { name: 'Infection Preventionist', hp: 40, spd: 80, dmg: 7, beh: 'isolator', range: 340, rate: 3.2, look: { top: '#3a4450', bottom: '#3a4450', coat: true, longcoat: true, coatColor: '#f2d35b', mask: true }, xp: 15, cash: 5, cured: 'Precautions lifted ✓', attack: 'Isolation Zone' },
+  pharmarep:   { name: 'Pharmaceutical Rep',    hp: 30, spd: 95,  dmg: 4,  beh: 'support', range: 360, rate: 5.0, look: { top: '#2b2f3a', bottom: '#2b2f3a', suit: '#c0392b', briefcase: true }, xp: 16, cash: 14, cured: 'Samples confiscated ✓', attack: 'Free Samples!' },
   resident:    { name: 'Resident',              hp: 40, spd: 100, dmg: 8,  beh: 'melee', look: { top: '#7fb2d9', bottom: '#7fb2d9' }, xp: 10, cash: 3, cured: 'Signed out ✓', attack: 'Scut Work' },
 };
 
@@ -146,7 +152,7 @@ const ENEMIES = {
 const SPECIALTIES = {
   peds: { name: 'Pediatrics', boss: 'Dr. Rosa Alvarez', setting: 'clinic', place: "Children's Clinic", accent: '#ffb347',
     diseases: ['Croup', 'RSV Bronchiolitis', 'Acute Otitis Media', 'Hand-Foot-Mouth', 'Strep Pharyngitis', 'Gastroenteritis'],
-    staff: ['patient', 'patient', 'ma', 'nurse', 'phleb'],
+    staff: ['patient', 'patient', 'ma', 'nurse', 'phleb', 'infection'],
     attacks: { ring: 'Vaccine Schedule', volley: 'Growth Chart Volley', summon: 'Toddler Tantrum', zones: 'Sticker Reward' },
     q: [
       { q: 'Most common cause of bronchiolitis in infants?', a: ['Respiratory syncytial virus', 'Influenza A', 'Haemophilus influenzae type b', 'Mycoplasma pneumoniae'], why: 'RSV is the leading cause of bronchiolitis in infants.' },
@@ -156,7 +162,7 @@ const SPECIALTIES = {
     ] },
   psych: { name: 'Psychiatry', boss: 'Dr. Malcolm Reyes', setting: 'clinic', place: 'Behavioral Health Unit', accent: '#9fa8ff',
     diseases: ['Delirium', 'Alcohol Withdrawal', 'Panic Attack', 'Serotonin Syndrome', 'Lithium Toxicity', 'Catatonia'],
-    staff: ['patient', 'patient', 'nurse', 'pharmacist', 'casemgr'],
+    staff: ['patient', 'patient', 'nurse', 'pharmacist', 'casemgr', 'security', 'dietitian'],
     attacks: { ring: 'Mental Status Exam', spiral: 'Flight of Ideas', summon: 'Group Therapy', volley: 'Free Association' },
     q: [
       { q: 'Clozapine requires regular monitoring of:', a: ['Absolute neutrophil count', 'Serum amylase', 'Vitamin B12', 'Urine osmolality'], why: 'Clozapine can cause agranulocytosis, so the ANC is monitored.' },
@@ -166,7 +172,7 @@ const SPECIALTIES = {
     ] },
   fm: { name: 'Family Medicine', boss: 'Dr. Linda Park', setting: 'clinic', place: 'Family Health Center', accent: '#6fd18f',
     diseases: ['Hypertension', 'Type 2 Diabetes', 'COPD Exacerbation', 'Low Back Pain', 'Acute Sinusitis', 'Gout Flare'],
-    staff: ['patient', 'patient', 'ma', 'insurance', 'pharmacist', 'clerk'],
+    staff: ['patient', 'patient', 'ma', 'insurance', 'pharmacist', 'clerk', 'dietitian', 'pharmarep'],
     attacks: { ring: 'Preventive Screening', volley: 'Fifteen-Minute Visit', zones: 'Annual Wellness Check', summon: 'Walk-In Rush', dash: 'Continuity of Care' },
     q: [
       { q: 'Per USPSTF, average-risk colorectal cancer screening begins at age:', a: ['45', '40', '50', '55'], why: 'USPSTF lowered the starting age to 45 in 2021.' },
@@ -176,7 +182,7 @@ const SPECIALTIES = {
     ] },
   ent: { name: 'Otolaryngology (ENT)', boss: 'Dr. Arjun Mehta', setting: 'hospital', place: 'ENT Clinic & OR', accent: '#ffd36b',
     diseases: ['Epistaxis', 'Peritonsillar Abscess', 'Otitis Externa', 'BPPV', 'Chronic Sinusitis'],
-    staff: ['patient', 'patient', 'nurse', 'radtech', 'clerk'],
+    staff: ['patient', 'patient', 'nurse', 'radtech', 'clerk', 'pt', 'infection'],
     attacks: { ring: 'Weber & Rinne', volley: 'Nasal Packing', zones: 'Tympanometry', spiral: 'Vertigo Spin' },
     q: [
       { q: 'Most common site of anterior epistaxis?', a: ["Kiesselbach's plexus", 'Sphenopalatine artery', 'Inferior turbinate', 'Posterior ethmoid artery'], why: "Kiesselbach's plexus on the anterior septum causes ~90% of nosebleeds." },
@@ -186,7 +192,7 @@ const SPECIALTIES = {
     ] },
   obgyn: { name: 'Obstetrics & Gynecology', boss: 'Dr. Grace Okafor', setting: 'hospital', place: 'Labor & Delivery', accent: '#ff8fc8',
     diseases: ['Preeclampsia', 'Hyperemesis Gravidarum', 'Ectopic Pregnancy', 'PCOS', 'Gestational Diabetes'],
-    staff: ['patient', 'patient', 'nurse', 'labtech', 'lawyer'],
+    staff: ['patient', 'patient', 'nurse', 'labtech', 'lawyer', 'security', 'dietitian'],
     attacks: { ring: 'Contraction Wave', volley: 'Fundal Height', summon: 'Family Waiting Room', zones: 'Fetal Monitoring' },
     q: [
       { q: 'First-line agent for seizure prophylaxis in preeclampsia with severe features?', a: ['Magnesium sulfate', 'Phenytoin', 'Lorazepam', 'Levetiracetam'], why: 'Magnesium sulfate prevents and treats eclamptic seizures.' },
@@ -196,7 +202,7 @@ const SPECIALTIES = {
     ] },
   cards: { name: 'Cardiology', boss: 'Dr. Henry Castellano', setting: 'hospital', place: 'Cardiac Cath Lab', accent: '#ff5d6c',
     diseases: ['Atrial Fibrillation', 'STEMI', 'CHF Exacerbation', 'Pericarditis', 'Aortic Stenosis'],
-    staff: ['patient', 'patient', 'nurse', 'radtech', 'pharmacist', 'exec'],
+    staff: ['patient', 'patient', 'nurse', 'radtech', 'pharmacist', 'exec', 'dietitian', 'pharmarep', 'pt'],
     attacks: { ring: 'Twelve-Lead Burst', spiral: 'Torsades Spiral', dash: 'Door-to-Balloon', volley: 'Ejection Fraction' },
     q: [
       { q: 'ST elevation in leads II, III and aVF indicates which MI territory?', a: ['Inferior', 'Anterior', 'Lateral', 'Posterior only'], why: 'II, III, aVF look at the inferior wall (usually the RCA).' },
@@ -206,7 +212,7 @@ const SPECIALTIES = {
     ] },
   em: { name: 'Emergency Medicine', boss: 'Dr. Tasha Brooks', setting: 'hospital', place: 'Emergency Department', accent: '#ff7a3d',
     diseases: ['Anaphylaxis', 'Opioid Overdose', 'DKA', 'Sepsis', 'Acetaminophen Overdose'],
-    staff: ['patient', 'patient', 'patient', 'nurse', 'transporter', 'rt', 'lawyer'],
+    staff: ['patient', 'patient', 'patient', 'nurse', 'transporter', 'rt', 'lawyer', 'security', 'infection', 'security'],
     attacks: { ring: 'Mass Casualty', dash: 'Trauma Activation', summon: 'Waiting Room Surge', zones: 'Triage Zones', volley: 'Rapid Sequence' },
     q: [
       { q: 'Antidote for acetaminophen overdose?', a: ['N-acetylcysteine', 'Flumazenil', 'Fomepizole', 'Deferoxamine'], why: 'NAC replenishes glutathione; best within 8 hours of ingestion.' },
@@ -216,7 +222,7 @@ const SPECIALTIES = {
     ] },
   surg: { name: 'General Surgery', boss: 'Dr. Victor Hale', setting: 'hospital', place: 'Surgical Ward & OR', accent: '#4fd1c5',
     diseases: ['Appendicitis', 'Cholecystitis', 'Small Bowel Obstruction', 'Incarcerated Hernia', 'Diverticulitis'],
-    staff: ['patient', 'patient', 'nurse', 'transporter', 'labtech', 'exec', 'resident'],
+    staff: ['patient', 'patient', 'nurse', 'transporter', 'labtech', 'exec', 'resident', 'infection', 'pt', 'security'],
     attacks: { dash: 'Midline Laparotomy', ring: 'Retractor Sweep', volley: 'Bovie Bolts', summon: 'Scrub Team' },
     q: [
       { q: "Positive Murphy's sign is most associated with:", a: ['Acute cholecystitis', 'Appendicitis', 'Pancreatitis', 'Diverticulitis'], why: 'Inspiratory arrest on RUQ palpation suggests cholecystitis.' },
@@ -226,7 +232,7 @@ const SPECIALTIES = {
     ] },
   derm: { name: 'Dermatology', boss: 'Dr. Naomi Sato', setting: 'hospital', place: 'Dermatology Suite', accent: '#f6a6b2',
     diseases: ['Cellulitis', 'Psoriasis', 'Melanoma', 'Herpes Zoster', 'Stevens-Johnson Syndrome'],
-    staff: ['patient', 'patient', 'ma', 'pharmacist', 'insurance', 'labtech'],
+    staff: ['patient', 'patient', 'ma', 'pharmacist', 'insurance', 'labtech', 'pharmarep', 'infection'],
     attacks: { ring: 'Dermatome Ring', zones: 'Cryotherapy', volley: 'Punch Biopsy', spiral: 'Christmas-Tree Spiral' },
     q: [
       { q: 'In the ABCDEs of melanoma, "E" stands for:', a: ['Evolving', 'Elevated', 'Erythematous', 'Eczematous'], why: 'Change in size, shape or color over time is a key warning sign.' },
@@ -236,7 +242,7 @@ const SPECIALTIES = {
     ] },
   ortho: { name: 'Orthopedic Surgery', boss: 'Dr. Marcus Strand', setting: 'hospital', place: 'Ortho Trauma Bay', accent: '#c7d0dc',
     diseases: ['Scaphoid Fracture', 'ACL Tear', 'Hip Fracture', 'Compartment Syndrome', 'Septic Arthritis'],
-    staff: ['patient', 'patient', 'radtech', 'radtech', 'transporter', 'nurse', 'lawyer'],
+    staff: ['patient', 'patient', 'radtech', 'radtech', 'transporter', 'nurse', 'lawyer', 'pt', 'pt', 'security'],
     attacks: { dash: 'Closed Reduction', zones: 'Bone Saw', ring: 'Cast Room', volley: 'Ortho Hammer' },
     q: [
       { q: 'Most commonly fractured carpal bone?', a: ['Scaphoid', 'Lunate', 'Hamate', 'Trapezium'], why: 'Snuffbox tenderness after a FOOSH = scaphoid until proven otherwise.' },
@@ -246,7 +252,7 @@ const SPECIALTIES = {
     ] },
   anes: { name: 'Anesthesiology', boss: 'Dr. Ingrid Larsen', setting: 'or', place: 'Pre-Op & PACU', accent: '#8be0ff',
     diseases: ['Malignant Hyperthermia', 'Difficult Airway', 'Postop Nausea', 'Local Anesthetic Toxicity'],
-    staff: ['patient', 'nurse', 'rt', 'pharmacist', 'transporter', 'resident'],
+    staff: ['patient', 'nurse', 'rt', 'pharmacist', 'transporter', 'resident', 'infection', 'security'],
     attacks: { ring: 'Induction', spiral: 'Sevoflurane Swirl', zones: 'Nerve Block', summon: 'PACU Rush' },
     q: [
       { q: 'Specific treatment for malignant hyperthermia?', a: ['Dantrolene', 'Succinylcholine', 'Propofol', 'Neostigmine'], why: 'Dantrolene blocks calcium release from the sarcoplasmic reticulum.' },
@@ -256,7 +262,7 @@ const SPECIALTIES = {
     ] },
   rads: { name: 'Radiology', boss: 'Dr. Owen Fitzgerald', setting: 'hospital', place: 'Imaging Department', accent: '#a0b4c8',
     diseases: ['Pneumothorax', 'Kidney Stone', 'Pulmonary Embolism', 'Pneumoperitoneum', 'Bowel Obstruction'],
-    staff: ['patient', 'radtech', 'radtech', 'radtech', 'transporter', 'clerk'],
+    staff: ['patient', 'radtech', 'radtech', 'radtech', 'transporter', 'clerk', 'security', 'pharmarep'],
     attacks: { zones: 'Contrast Bolus', ring: 'CT Gantry', spiral: 'MRI Gradient', volley: 'Wet Read' },
     q: [
       { q: 'Preferred imaging for suspected kidney stone in a non-pregnant adult?', a: ['Non-contrast CT abdomen/pelvis', 'Contrast-enhanced MRI', 'Plain KUB only', 'Nuclear renal scan'], why: 'Low-dose non-contrast CT is most sensitive and specific.' },
@@ -266,7 +272,7 @@ const SPECIALTIES = {
     ] },
   im: { name: 'Internal Medicine', boss: 'Dr. Eleanor Whitfield', setting: 'hospital', place: 'Medicine Wards', accent: '#7fb2ff',
     diseases: ['Pneumonia', 'Hyperkalemia', 'Thyroid Storm', 'Acute Kidney Injury', 'Upper GI Bleed'],
-    staff: ['patient', 'patient', 'nurse', 'pharmacist', 'casemgr', 'labtech', 'exec'],
+    staff: ['patient', 'patient', 'nurse', 'pharmacist', 'casemgr', 'labtech', 'exec', 'dietitian', 'pharmarep', 'pt', 'infection'],
     attacks: { ring: 'Morning Rounds', volley: 'Admission Orders', summon: 'Overnight Admits', spiral: 'Differential Spiral', zones: 'Problem List' },
     q: [
       { q: 'Hyperkalemia with peaked T waves — the first drug to give?', a: ['IV calcium gluconate', 'Sodium polystyrene sulfonate', 'Furosemide', 'Oral potassium binder only'], why: 'Calcium stabilizes the cardiac membrane; insulin/glucose then shift K⁺.' },
@@ -276,7 +282,7 @@ const SPECIALTIES = {
     ] },
   neuro: { name: 'Neurosurgery', boss: 'Dr. Adrian Voss', setting: 'or', place: 'Neurosurgical OR', accent: '#c084fc', final: true,
     diseases: ['Epidural Hematoma', 'Subdural Hematoma', 'Subarachnoid Hemorrhage', 'Hydrocephalus', 'Cauda Equina', 'Glioblastoma'],
-    staff: ['patient', 'nurse', 'radtech', 'lawyer', 'exec', 'resident'],
+    staff: ['patient', 'nurse', 'radtech', 'lawyer', 'exec', 'resident', 'security', 'infection', 'pharmarep', 'pt', 'dietitian'],
     attacks: { ring: 'Craniotomy', spiral: 'Stereotactic Spiral', dash: 'Burr Hole Rush', zones: 'Gamma Knife', summon: 'Neuro ICU Team', volley: 'Glasgow Barrage' },
     q: [
       { q: 'Lucid interval with a biconvex (lens-shaped) hematoma on CT:', a: ['Epidural hematoma', 'Subdural hematoma', 'Subarachnoid hemorrhage', 'Intraparenchymal hemorrhage'], why: 'Usually middle meningeal artery injury; does not cross suture lines.' },

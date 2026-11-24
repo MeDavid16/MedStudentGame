@@ -147,3 +147,13 @@ const MORE_QUESTIONS = {
   ],
 };
 for (const k in MORE_QUESTIONS) if (SPECIALTIES[k]) SPECIALTIES[k].q.push(...MORE_QUESTIONS[k]);
+// merge the large per-specialty banks (tuples: [question, correct, wrong, wrong, wrong, explanation]), skipping duplicates
+for (const k in QB) {
+  if (!SPECIALTIES[k]) continue;
+  const have = new Set(SPECIALTIES[k].q.map(x => x.q.trim().toLowerCase()));
+  for (const t of QB[k]) {
+    if (!Array.isArray(t) || t.length < 6) continue;
+    const key = t[0].trim().toLowerCase(); if (have.has(key)) continue; have.add(key);
+    SPECIALTIES[k].q.push({ q: t[0], a: [t[1], t[2], t[3], t[4]], why: t[5] });
+  }
+}

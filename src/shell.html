@@ -18,11 +18,13 @@
     <h1 class="logo">RESIDENCY</h1>
     <div class="tag"><span class="tag-line"></span>The Long Call<span class="tag-line"></span></div>
     <div id="title-ticker"></div>
-    <p class="lede">Fight your way from the lecture hall through clinics and hospital wards. Out-think diseases, survive the staff, and get past fourteen attendings to become a doctor.</p>
+    <p class="lede intro2"><span>Outwit the attendings, outrun the subpoenas, out-chart the night shift.</span><span>Sleep is optional. Coffee is not.</span></p>
     <div class="col narrow">
       <button class="btn primary big hidden glowpulse" id="title-continue">Continue</button>
+      <button class="btn big hidden" id="title-load">Load saved game</button>
       <button class="btn big" id="title-new">New student doctor</button>
     </div>
+    <div class="board" id="board"></div>
     <a class="btn donate" href="https://paypal.me/medavid16" target="_blank" rel="noopener noreferrer">Donate to Developer</a>
     <p class="muted small donate-url">paypal.me/medavid16</p>
     <p class="muted small">Saves in this browser. Best with keyboard and mouse; touch controls included.</p>
@@ -43,6 +45,7 @@
         <label>Scrubs</label><div id="cr-scrub" class="swatches"></div>
       </div>
     </div>
+    <div class="err" id="cr-err"></div>
     <div class="row end"><button class="btn" id="cr-back">Back</button><button class="btn primary" id="cr-go">Start medical school</button></div>
   </div>
 </section>

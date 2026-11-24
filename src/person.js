@@ -15,7 +15,7 @@ function drawPerson(x, y, o) {
   const style = o.style || (female ? 'ponytail' : 'short');
   const hair = o.hair || '#2b1b10';
   const longSleeve = o.coat || o.suit;
-  const coatCol = '#f7f8fa';
+  const coatCol = o.coatColor || '#f7f8fa';
   ctx.save(); ctx.translate(x, y); ctx.scale(s * (o.face || 1), s);
 
   // ---------- ground shadow ----------
@@ -87,7 +87,8 @@ function drawPerson(x, y, o) {
     ctx.strokeStyle = shade(top, -0.28); ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(-3.4, -50); ctx.lineTo(0.6, -43); ctx.lineTo(4.4, -50); ctx.stroke();
     if (!o.coat && !o.apron) {
       ctx.strokeStyle = shade(top, -0.22); ctx.lineWidth = 0.6; ctx.strokeRect(2.2, -41, 5, 4.4);
-      if (o.badge !== false) { ctx.fillStyle = '#f4f6f8'; ctx.fillRect(3.2, -43.2, 3, 4); ctx.fillStyle = '#2b7bd6'; ctx.fillRect(3.2, -43.2, 3, 1); ctx.fillStyle = '#9aa6b2'; ctx.fillRect(3.7, -41.4, 2, 0.5); }
+      if (o.badgeGold) { ctx.fillStyle = '#e6b422'; ctx.beginPath(); ctx.moveTo(4.6, -43.6); ctx.lineTo(7, -42.6); ctx.lineTo(6.6, -39.6); ctx.lineTo(4.6, -38.4); ctx.lineTo(2.6, -39.6); ctx.lineTo(2.2, -42.6); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#fff6c4'; ctx.fillRect(4.2, -42, 0.8, 2); }
+      else if (o.badge !== false) { ctx.fillStyle = '#f4f6f8'; ctx.fillRect(3.2, -43.2, 3, 4); ctx.fillStyle = '#2b7bd6'; ctx.fillRect(3.2, -43.2, 3, 1); ctx.fillStyle = '#9aa6b2'; ctx.fillRect(3.7, -41.4, 2, 0.5); }
       ctx.fillStyle = shade(top, -0.2); ctx.fillRect(-HIP + 0.5, -27, HIP * 2 - 1, 1.2); // hem
     }
   }
@@ -206,7 +207,7 @@ function drawCoat(o, SH, HIP, col) {
   if (o.tie) { ctx.fillStyle = o.tie; ctx.beginPath(); ctx.moveTo(0, -49.5); ctx.lineTo(1.8, -49.5); ctx.lineTo(2.2, -40.5); ctx.lineTo(0.9, -38.6); ctx.lineTo(-0.4, -40.5); ctx.closePath(); ctx.fill(); }
   for (const side of [-1, 1]) {
     panel(side);
-    ctx.fillStyle = lg(-SH - 2, 0, SH + 2, 0, [[0, '#c9d0d8'], [0.45, '#f3f5f7'], [0.8, col], [1, '#d5dbe2']]); ctx.fill();
+    ctx.fillStyle = lg(-SH - 2, 0, SH + 2, 0, [[0, shade(col, -0.18)], [0.45, shade(col, 0.03)], [0.8, col], [1, shade(col, -0.11)]]); ctx.fill();
     ctx.fillStyle = lg(0, -50, 0, bottom, [[0, 'rgba(255,255,255,0.15)'], [1, 'rgba(70,90,110,0.18)']]); panel(side); ctx.fill();
   }
   ctx.strokeStyle = 'rgba(60,80,100,0.35)'; ctx.lineWidth = 0.7;
@@ -270,6 +271,12 @@ function drawHead(o, sk, hair, style, female) {
   // mouth
   ctx.strokeStyle = female ? '#a8505a' : shade(sk, -0.35); ctx.lineWidth = female ? 0.95 : 0.7;
   ctx.beginPath(); ctx.moveTo(3.6, -53.2); ctx.quadraticCurveTo(5.4, -52.6, 6.9, -53.4); ctx.stroke();
+  if (o.mask) {
+    ctx.fillStyle = lg(0, -57, 0, -50, [[0, '#cfe6f7'], [1, '#8fbcdc']]);
+    ctx.beginPath(); ctx.moveTo(-0.6, -57.4); ctx.quadraticCurveTo(5, -58.4, 9.4, -56.6); ctx.quadraticCurveTo(9.6, -52.4, 7, -50.2); ctx.quadraticCurveTo(3, -49.2, -0.2, -51); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(70,110,150,0.55)'; ctx.lineWidth = 0.5; for (const yy of [-55.6, -53.8, -52]) { ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(9, yy - 0.3); ctx.stroke(); }
+    ctx.strokeStyle = '#e8eef4'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(-0.4, -56.8); ctx.lineTo(-2.6, -58.6); ctx.moveTo(-0.2, -51.4); ctx.lineTo(-2.4, -56.6); ctx.stroke();
+  }
   if (o.glasses) { ctx.strokeStyle = '#1e2228'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.ellipse(2.7, -59.2, 2.4, 1.8, 0, 0, 7); ctx.moveTo(8.1, -59.2); ctx.ellipse(6.6, -59.2, 1.6, 1.8, 0, 0, 7); ctx.moveTo(5, -59.4); ctx.lineTo(5.1, -59.4); ctx.moveTo(0.3, -59.4); ctx.lineTo(-2.2, -58.6); ctx.stroke(); }
 
   // hair (on top)
@@ -324,6 +331,12 @@ function drawHead(o, sk, hair, style, female) {
     ctx.beginPath(); ctx.moveTo(-7.6, -57.6); ctx.bezierCurveTo(-10.2, -70, 7, -73.4, 9, -61.4); ctx.quadraticCurveTo(1, -63.4, -7.6, -57.6); ctx.fill();
     ctx.strokeStyle = shade(cc, -0.3); ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(-7.4, -58); ctx.quadraticCurveTo(1, -63.6, 8.8, -61.6); ctx.stroke();
     ctx.fillStyle = 'rgba(255,255,255,0.35)'; for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.arc(-4 + i * 2.2, -66 + Math.sin(i) * 1.2, 0.45, 0, 7); ctx.fill(); }
+  }
+  if (o.head === 'guardcap') {
+    ctx.fillStyle = lg(-8, -71, 8, -60, [[0, '#2c3550'], [1, '#151a28']]);
+    ctx.beginPath(); ctx.moveTo(-7.6, -60.6); ctx.quadraticCurveTo(-8.4, -70.5, 1, -71); ctx.quadraticCurveTo(8.6, -70.6, 8.6, -62); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#0d111b'; ctx.beginPath(); ctx.moveTo(3, -62.4); ctx.lineTo(12.6, -61); ctx.quadraticCurveTo(10, -59.6, 3.4, -60.2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e6b422'; ctx.beginPath(); ctx.arc(4.4, -66, 1.6, 0, 7); ctx.fill();
   }
   if (o.head === 'lamp') {
     ctx.fillStyle = '#2b2f36'; ctx.beginPath(); ctx.moveTo(-7.4, -62.4); ctx.quadraticCurveTo(1, -65.6, 8.4, -63); ctx.lineTo(8.4, -61.6); ctx.quadraticCurveTo(1, -64.2, -7.4, -61); ctx.fill();
