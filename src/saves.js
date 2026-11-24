@@ -43,14 +43,14 @@ const Board = {
   localRows() {
     let rows = {};
     try { rows = JSON.parse(localStorage.getItem(BOARD_KEY) || '{}') || {}; } catch (e) {}
-    for (const s of Saves.list()) { const sc = scoreOf(s); const k = s.name.trim().toLowerCase(); if (!rows[k] || rows[k].score < sc) rows[k] = { name: s.name, score: sc, level: s.level, cleared: s.cleared, finished: !!s.finished }; }
+    for (const s of Saves.list()) { const sc = scoreOf(s); const k = s.name.trim().toLowerCase(); if (!rows[k] || rows[k].score < sc) rows[k] = { name: s.name, score: sc, level: s.level, cleared: s.cleared, finished: !!s.finished, weapons: (s.weapons || []).slice(0, 2) }; }
     return Object.values(rows);
   },
   recordLocal(s) {
     let rows = {};
     try { rows = JSON.parse(localStorage.getItem(BOARD_KEY) || '{}') || {}; } catch (e) {}
     const k = s.name.trim().toLowerCase(), sc = scoreOf(s);
-    if (!rows[k] || rows[k].score < sc) { rows[k] = { name: s.name, score: sc, level: s.level, cleared: s.cleared, finished: !!s.finished }; try { localStorage.setItem(BOARD_KEY, JSON.stringify(rows)); } catch (e) {} }
+    if (!rows[k] || rows[k].score < sc || (rows[k].score === sc && (rows[k].weapons || []).length < (s.weapons || []).length)) { rows[k] = { name: s.name, score: sc, level: s.level, cleared: s.cleared, finished: !!s.finished, weapons: (s.weapons || []).slice(0, 2) }; try { localStorage.setItem(BOARD_KEY, JSON.stringify(rows)); } catch (e) {} }
   },
   async init() {
     try {
@@ -63,7 +63,7 @@ const Board = {
       this.sub = q.onSnapshot(snap => {
         clearTimeout(timer);
         const rows = [];
-        snap.forEach(doc => { const v = doc.data ? doc.data() : doc; if (v && typeof v.score === 'number' && typeof v.name === 'string') rows.push({ name: v.name.slice(0, 22), score: v.score, level: v.level | 0, cleared: v.cleared | 0, finished: !!v.finished }); });
+        snap.forEach(doc => { const v = doc.data ? doc.data() : doc; if (v && typeof v.score === 'number' && typeof v.name === 'string') rows.push({ name: v.name.slice(0, 22), score: v.score, level: v.level | 0, cleared: v.cleared | 0, finished: !!v.finished, weapons: Array.isArray(v.weapons) ? v.weapons.filter(w => typeof w === 'string' && WEAPONS[w]).slice(0, 2) : [] }); });
         this.sharedRows = rows; UI.renderBoard && UI.renderBoard();
       }, () => { clearTimeout(timer); this.shared = null; UI.renderBoard && UI.renderBoard(); });
     } catch (e) { this.shared = null; }
@@ -75,7 +75,7 @@ const Board = {
     const mine = (this.sharedMine || 0);
     if (sc <= mine || Date.now() - this.lastPushed < 4000) return;
     this.lastPushed = Date.now(); this.sharedMine = sc;
-    try { await this.shared.collection('leaderboard').doc(this.uid).set({ name: s.name, score: sc, level: s.level, cleared: s.cleared, finished: !!s.finished, at: Date.now() }); } catch (e) { /* view-only viewers can't write */ }
+    try { await this.shared.collection('leaderboard').doc(this.uid).set({ name: s.name, score: sc, level: s.level, cleared: s.cleared, finished: !!s.finished, weapons: (s.weapons || []).slice(0, 2), at: Date.now() }); } catch (e) { /* view-only viewers can't write */ }
   },
   top(n) {
     const rows = (this.shared && this.sharedRows) ? this.sharedRows : this.localRows();

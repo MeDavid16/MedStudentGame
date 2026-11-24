@@ -247,6 +247,11 @@ p { line-height: 1.5; margin: 8px 0; }
 .slotrow .info b { display: block; font-size: 15px; }
 .slotrow .info span { font-size: 12px; color: var(--muted); }
 .err { color: #ff8a8a; font-size: 13px; margin-top: 6px; }
+
+.board { width: min(440px, 94vw); }
+.brow .nm small.wp { display: block; font-size: 11px; font-weight: 600; color: #ffd08a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.bcols { display: grid; grid-template-columns: 26px 1fr auto auto; gap: 8px; padding: 0 4px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #6f8197; }
+.bcols span:nth-child(3), .bcols span:nth-child(4) { text-align: right; }
 </style>
 </head>
 <body>
@@ -2190,14 +2195,14 @@ const Board = {
   localRows() {
     let rows = {};
     try { rows = JSON.parse(localStorage.getItem(BOARD_KEY) || '{}') || {}; } catch (e) {}
-    for (const s of Saves.list()) { const sc = scoreOf(s); const k = s.name.trim().toLowerCase(); if (!rows[k] || rows[k].score < sc) rows[k] = { name: s.name, score: sc, level: s.level, cleared: s.cleared, finished: !!s.finished }; }
+    for (const s of Saves.list()) { const sc = scoreOf(s); const k = s.name.trim().toLowerCase(); if (!rows[k] || rows[k].score < sc) rows[k] = { name: s.name, score: sc, level: s.level, cleared: s.cleared, finished: !!s.finished, weapons: (s.weapons || []).slice(0, 2) }; }
     return Object.values(rows);
   },
   recordLocal(s) {
     let rows = {};
     try { rows = JSON.parse(localStorage.getItem(BOARD_KEY) || '{}') || {}; } catch (e) {}
     const k = s.name.trim().toLowerCase(), sc = scoreOf(s);
-    if (!rows[k] || rows[k].score < sc) { rows[k] = { name: s.name, score: sc, level: s.level, cleared: s.cleared, finished: !!s.finished }; try { localStorage.setItem(BOARD_KEY, JSON.stringify(rows)); } catch (e) {} }
+    if (!rows[k] || rows[k].score < sc || (rows[k].score === sc && (rows[k].weapons || []).length < (s.weapons || []).length)) { rows[k] = { name: s.name, score: sc, level: s.level, cleared: s.cleared, finished: !!s.finished, weapons: (s.weapons || []).slice(0, 2) }; try { localStorage.setItem(BOARD_KEY, JSON.stringify(rows)); } catch (e) {} }
   },
   async init() {
     try {
@@ -2210,7 +2215,7 @@ const Board = {
       this.sub = q.onSnapshot(snap => {
         clearTimeout(timer);
         const rows = [];
-        snap.forEach(doc => { const v = doc.data ? doc.data() : doc; if (v && typeof v.score === 'number' && typeof v.name === 'string') rows.push({ name: v.name.slice(0, 22), score: v.score, level: v.level | 0, cleared: v.cleared | 0, finished: !!v.finished }); });
+        snap.forEach(doc => { const v = doc.data ? doc.data() : doc; if (v && typeof v.score === 'number' && typeof v.name === 'string') rows.push({ name: v.name.slice(0, 22), score: v.score, level: v.level | 0, cleared: v.cleared | 0, finished: !!v.finished, weapons: Array.isArray(v.weapons) ? v.weapons.filter(w => typeof w === 'string' && WEAPONS[w]).slice(0, 2) : [] }); });
         this.sharedRows = rows; UI.renderBoard && UI.renderBoard();
       }, () => { clearTimeout(timer); this.shared = null; UI.renderBoard && UI.renderBoard(); });
     } catch (e) { this.shared = null; }
@@ -2222,7 +2227,7 @@ const Board = {
     const mine = (this.sharedMine || 0);
     if (sc <= mine || Date.now() - this.lastPushed < 4000) return;
     this.lastPushed = Date.now(); this.sharedMine = sc;
-    try { await this.shared.collection('leaderboard').doc(this.uid).set({ name: s.name, score: sc, level: s.level, cleared: s.cleared, finished: !!s.finished, at: Date.now() }); } catch (e) { /* view-only viewers can't write */ }
+    try { await this.shared.collection('leaderboard').doc(this.uid).set({ name: s.name, score: sc, level: s.level, cleared: s.cleared, finished: !!s.finished, weapons: (s.weapons || []).slice(0, 2), at: Date.now() }); } catch (e) { /* view-only viewers can't write */ }
   },
   top(n) {
     const rows = (this.shared && this.sharedRows) ? this.sharedRows : this.localRows();
@@ -4564,7 +4569,7 @@ const UI = {
   renderBoard() {
     const el = $('#board'); if (!el) return;
     const rows = Board.top(5);
-    el.innerHTML = `<div class="board-h">🏆 Leaderboard — Top 5 <small>${Board.label()}</small></div>` + (rows.length ? rows.map((r, i) => `<div class="brow r${i + 1}"><span class="rk">${i + 1}</span><span class="nm">${r.finished ? 'Dr. ' : ''}${esc(r.name)}</span><span class="lv">Lv ${r.level | 0} · ${r.cleared | 0}/15</span><span class="sc">${fmt(r.score)}</span></div>`).join('')
+    el.innerHTML = `<div class="board-h">🏆 Leaderboard — Top 5 <small>${Board.label()}</small></div><div class="bcols"><span></span><span>Player · weapon</span><span>Progress</span><span>Score</span></div>` + (rows.length ? rows.map((r, i) => { const ws = (r.weapons || []).filter(w => WEAPONS[w]); return `<div class="brow r${i + 1}"><span class="rk">${i + 1}</span><span class="nm">${r.finished ? 'Dr. ' : ''}${esc(r.name)}<small class="wp">${ws.length ? ws.map(w => `${WEAPONS[w].icon} ${esc(WEAPONS[w].name)}`).join(' + ') : 'Weapon unknown'}</small></span><span class="lv">Lv ${r.level | 0} · ${r.cleared | 0}/15</span><span class="sc">${fmt(r.score)}</span></div>`; }).join('')
       : '<div class="board-empty">No scores yet. Clear rotations, answer attendings correctly and treat patients to get on the board.</div>');
   },
   showSaves() {

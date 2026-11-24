@@ -26,7 +26,7 @@ const UI = {
   renderBoard() {
     const el = $('#board'); if (!el) return;
     const rows = Board.top(5);
-    el.innerHTML = `<div class="board-h">🏆 Leaderboard — Top 5 <small>${Board.label()}</small></div>` + (rows.length ? rows.map((r, i) => `<div class="brow r${i + 1}"><span class="rk">${i + 1}</span><span class="nm">${r.finished ? 'Dr. ' : ''}${esc(r.name)}</span><span class="lv">Lv ${r.level | 0} · ${r.cleared | 0}/15</span><span class="sc">${fmt(r.score)}</span></div>`).join('')
+    el.innerHTML = `<div class="board-h">🏆 Leaderboard — Top 5 <small>${Board.label()}</small></div><div class="bcols"><span></span><span>Player · weapon</span><span>Progress</span><span>Score</span></div>` + (rows.length ? rows.map((r, i) => { const ws = (r.weapons || []).filter(w => WEAPONS[w]); return `<div class="brow r${i + 1}"><span class="rk">${i + 1}</span><span class="nm">${r.finished ? 'Dr. ' : ''}${esc(r.name)}<small class="wp">${ws.length ? ws.map(w => `${WEAPONS[w].icon} ${esc(WEAPONS[w].name)}`).join(' + ') : 'Weapon unknown'}</small></span><span class="lv">Lv ${r.level | 0} · ${r.cleared | 0}/15</span><span class="sc">${fmt(r.score)}</span></div>`; }).join('')
       : '<div class="board-empty">No scores yet. Clear rotations, answer attendings correctly and treat patients to get on the board.</div>');
   },
   showSaves() {

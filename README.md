@@ -16,7 +16,7 @@ A browser action RPG about a medical student fighting their way from the lecture
 - 4 rarity tiers with drop odds of Normal 73 / Magic 12 / Rare 8 / Legendary 4. Each shop restock holds at most 1 Legendary, 2 Rare and 2 Magic
 - Adaptive procedural music: coffee-shop jazz in the halls, driving combat music in waves, and an orchestral choir duel for attending bosses
 - Animated title screen, stat guide, keyboard/mouse and touch controls
-- Multiple named save slots in the browser, a score for each character, and a top-5 leaderboard (shared between players on the Claude-hosted version; this device otherwise)
+- Multiple named save slots in the browser, a score for each character, and a top-5 leaderboard with each player's weapons (shared between players on the Claude-hosted version; this device otherwise)
 
 ## Controls
 | Key | Action |
