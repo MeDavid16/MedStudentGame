@@ -297,6 +297,7 @@ function startZone(idx) {
     boss: null, bossSpawned: false, qIdx: 0, shake: 0, banner: { text: Z.place, sub: Z.boss ? `${Z.name} rotation` : 'Orientation week', t: 3.5 },
     earned: { money: 0, bp: 0, xp: 0, items: [] }, cam: { x: WW / 2, y: WH / 2 },
   };
+  Decor.init();
   queueWave();
   UI.showGame();
 }
@@ -653,6 +654,7 @@ function update(dt) {
   for (const r of G.rings) { r.t -= dt; r.r += (r.max - r.r) * Math.min(1, dt * 10); }
   G.rings = G.rings.filter(r => r.t > 0);
   updateWeaponFx(dt);
+  Decor.update(dt);
   if (G.state !== 'play' && G.state !== 'won') return;
 
   const p = G.player, st = G.stats;
@@ -709,7 +711,7 @@ function update(dt) {
   // camera
   G.cam.x += (p.x - G.cam.x) * Math.min(1, dt * 8); G.cam.y += (p.y - 20 - G.cam.y) * Math.min(1, dt * 8);
   const hw = VW / 2 / ZOOM, hh = VH / 2 / ZOOM;
-  G.cam.x = WW > hw * 2 ? clamp(G.cam.x, hw, WW - hw) : WW / 2; G.cam.y = WH > hh * 2 ? clamp(G.cam.y, hh, WH - hh) : WH / 2;
+  G.cam.x = WW > hw * 2 ? clamp(G.cam.x, hw, WW - hw) : WW / 2; G.cam.y = WH > hh * 2 ? clamp(G.cam.y, hh - 90, WH - hh) : WH / 2; // a little headroom so the HUD doesn't hide the back wall
 
   // waves
   if (G.state === 'play') {
@@ -989,7 +991,9 @@ function render() {
   if (!G) return;
   const sx = G.shake > 0 ? rand(-6, 6) * G.shake : 0, sy = G.shake > 0 ? rand(-6, 6) * G.shake : 0;
   ctx.setTransform(DPR * ZOOM, 0, 0, DPR * ZOOM, DPR * (VW / 2 - G.cam.x * ZOOM + sx), DPR * (VH / 2 - G.cam.y * ZOOM + sy));
+  { const cg = ctx.createLinearGradient(0, -120, 0, 0); cg.addColorStop(0, '#0b0f14'); cg.addColorStop(1, '#2a3340'); ctx.fillStyle = cg; ctx.fillRect(-300, -120, WW + 600, 120); }
   ctx.drawImage(G.floor, 0, 0);
+  Decor.drawWall();
   // hazards (ground)
   for (const h of G.hazards) {
     if (h.from === 'p') {
@@ -1019,6 +1023,7 @@ function render() {
   // y-sorted drawables
   const list = [];
   for (const p of G.props) list.push({ y: p.y + p.h, f: () => drawProp(p) });
+  Decor.floorDrawables(list);
   for (const e of G.enemies) list.push({ y: e.y, f: () => drawEnemy(e) });
   const P = G.player;
   if (G.state !== 'dead') list.push({ y: P.y, f: () => {
@@ -1047,6 +1052,8 @@ function render() {
   for (const r of G.rings) { ctx.strokeStyle = r.color; ctx.globalAlpha = r.t * 2; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, 7); ctx.stroke(); }
   ctx.globalAlpha = 1;
   for (const f of G.floaters) { ctx.globalAlpha = clamp(f.t * 1.5, 0, 1); ctx.font = `800 ${f.size}px Inter, system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(f.text, f.x, f.y); ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y); }
+  ctx.globalAlpha = 1;
+  Decor.drawQuips();
   ctx.globalAlpha = 1;
   // screen-space lighting vignette
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);

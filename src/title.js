@@ -5,7 +5,7 @@
 'use strict';
 const TitleFX = {
   cv: null, c: null, running: false, t: 0, last: 0, W: 0, H: 0, dpr: 1,
-  ecg: [], ecgX: 0, beatT: 0, nextBeat: 0.6, parts: [], runners: [], shots: [], texts: [], lights: [], tickerI: 0, tickerT: 0,
+  ecg: [], ecgX: 0, hahas: [], hahaT: 0, beatT: 0, nextBeat: 0.6, parts: [], runners: [], shots: [], texts: [], lights: [], tickerI: 0, tickerT: 0,
   reduce: false,
 
   init() {
@@ -110,6 +110,16 @@ const TitleFX = {
       const tb = this.beatT - (steps - k) * (3 / pxPerSec);
       this.ecg[i] = this.ecgShape(tb);
     }
+    // cackles
+    const L = maniacLaugh(this.t);
+    this.hahaT -= dt;
+    if (L.laughing && this.hahaT <= 0) {
+      this.hahaT = 0.32;
+      const R0 = Math.min(W * 0.62, H) * 0.4, side = Math.random() < 0.5 ? -1 : 1;
+      this.hahas.push({ x: W / 2 + side * R0 * rand(0.75, 1.15), y: H * 0.5 + R0 * rand(0.05, 0.4), vx: side * rand(30, 70), vy: -rand(40, 80), t: 1.4, size: Math.round(Math.min(W, H) * rand(0.04, 0.07)), rot: side * rand(0.05, 0.3) });
+    }
+    for (const h of this.hahas) { h.t -= dt; h.x += h.vx * dt; h.y += h.vy * dt; }
+    this.hahas = this.hahas.filter(h => h.t > 0);
     // particles
     for (const p of this.parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt; if (p.y < -30) Object.assign(p, this.newPart(false)); }
     // corridor lights
@@ -161,6 +171,14 @@ const TitleFX = {
     // backdrop
     const bg = c.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#07111c'); bg.addColorStop(0.55, '#0b1b2b'); bg.addColorStop(1, '#050a10');
     c.fillStyle = bg; c.fillRect(0, 0, W, H);
+    // the maniacal attending, looming behind everything and swelling in and out
+    const R0 = Math.min(W * 0.62, H) * 0.4, pulse = 1 + 0.14 * Math.sin(this.t * 1.25);
+    drawManiacCached(c, W / 2, H * 0.5, R0 * pulse, R0, this.t, 0.62);
+    for (const h of this.hahas) {
+      c.save(); c.globalAlpha = Math.max(0, Math.min(1, h.t)) * 0.55; c.translate(h.x, h.y); c.rotate(h.rot);
+      c.font = `900 ${h.size}px Inter, system-ui, sans-serif`; c.textAlign = 'center';
+      c.fillStyle = '#7dffb0'; c.shadowColor = 'rgba(60,255,170,0.8)'; c.shadowBlur = 12; c.fillText('HA!', 0, 0); c.restore();
+    }
     const vx = W / 2, vy = H * 0.46;
     // corridor: walls fade, ceiling light panels rushing toward viewer
     c.save();
